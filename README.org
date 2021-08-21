@@ -1,4 +1,4 @@
-#+TITLE: Librera Sync
+#+TITLE: FB2-reader
 
 #+PROPERTY: LOGGING nil
 
