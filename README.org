@@ -1,0 +1,8 @@
+#+TITLE: Librera Sync
+
+#+PROPERTY: LOGGING nil
+
+Major mode to read FB2 books inside emacs. Should work with librera-sync to sync reading position with Librera Reader. 
+
+* Aknowledgements
+Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]
