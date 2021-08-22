@@ -1,6 +1,9 @@
 ;;; -*- lexical-binding: t; -*-
 
 (eval-when-compile (require 'subr-x))
+(eval-when-compile (require 'imenu))
+(eval-when-compile (require 'dash))
+(eval-when-compile (require 's))
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   (or face (setq face 'default))
@@ -75,11 +78,17 @@
 	 (font-height (max 1.2 (- 1.8 (* title-level 0.2))))
 	 (title-width (round (/ fill-column font-height)))
 	 (title-face (cons (cons :height (list font-height)) face))
-	 (fill-column-backup fill-column))
+	 (fill-column-backup fill-column)
+	 (start (point)))
     (insert "\n\n")
     (setq-local fill-column title-width)
     (fb2-reader--format-string book body tags title-face curr-tag 'center 2)
-    (setq-local fill-column fill-column-backup)))
+    (setq-local fill-column fill-column-backup)
+    ;; Add title and position to table of contents
+    (let* ((title (s-replace "\n" " " (s-trim (buffer-substring-no-properties start (point)))))
+	   (toc-elt (list title title-level start)))
+      (push  toc-elt fb2-reader-toc))
+    ))
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
   (let* ((indent 4)
@@ -165,13 +174,22 @@
   (let ((map (make-sparse-keymap)))
     (define-key map [follow-link] 'mouse-face)
     (define-key map "\r" 'fb2-reader-follow-link)
-    (define-key map "v" 'fb2-reader-follow-link)
-    (define-key map [mouse-2] 'fb2-reader-follow-link)))
+    (define-key map [mouse-2] 'fb2-reader-follow-link)
+    map))
 
 (defun fb2-reader-read-book (book)
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body))
   )
+
+(defun fb2-reader-imenu-create-index ()
+  (let (index)
+    (dolist (item fb2-reader-toc)
+      (push (cons (cl-first item) (cl-third item)) index))
+      (reverse index)))
+
+(defun fb2-reader-imenu-setup ()
+  (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
 
 (defun fb2-reader-read ()
   (interactive)
@@ -183,7 +201,9 @@
     (switch-to-buffer title)
     ;; Parse fb2
     (setq-local fb2-reader-ids '())
+    (setq-local fb2-reader-toc '())
     (fb2-reader-read-book book)
+    (fb2-reader-imenu-setup)
     ))
 
 ;; (define-derived-mode fb2-reader-mode view-mode "FB2-reader"
