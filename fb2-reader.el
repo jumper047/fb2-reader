@@ -205,6 +205,7 @@
     ;; Parse fb2
     (setq-local fb2-reader-ids '())
     (setq-local fb2-reader-toc '())
+    (fb2-reader-read-book book)
     (fb2-reader-imenu-setup)
     ))
 
