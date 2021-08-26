@@ -1,9 +1,10 @@
 ;;; -*- lexical-binding: t; -*-
 
-(eval-when-compile (require 'subr-x))
-(eval-when-compile (require 'imenu))
-(eval-when-compile (require 'dash))
-(eval-when-compile (require 's))
+(require 'subr-x)
+(require 'cl-lib)
+(require 'imenu)
+(require 'dash)
+(require 's)
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   (or face (setq face 'default))
@@ -11,6 +12,7 @@
   (or alignment (setq alignment 'left))
   (or indent (setq indent 0))
   (if (stringp item)
+      ;; (fb2-reader--insert item alignment indent)
 		 (insert (propertize (string-trim item)
 				     'face face
 				     'fb2-reader-tags tags))
@@ -52,6 +54,24 @@
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
 
+(defun fb2-reader--insert (string alignment indent)
+  (let ((indent-str (string-join (make-list indent " ")))
+	(word ""))
+    (if (= (current-column) 0)
+	(insert indent-str))
+    (dolist (ch (seq-partition string 1))
+      (if (equal ch " ")
+	  (progn (if (>= fill-column (+ (current-column) 1 (length word)))
+		     (insert (concat " " word))
+		   (insert (concat "\n" indent-str word)))
+		 (setq word ""))
+	(setq word (concat word ch))))
+    (if (> (length word) 0)
+	(if (>= fill-column (+ (current-column) 1 (length word)))
+	    (insert (concat " " word))
+	  (insert (concat "\n" indent-str word))))))
+
+
 (defun fb2-reader--format-string (book body tags face curr-tag  alignment indent  &optional indent-first append-newline)
   (or indent-first (setq indent-first 2))
   (or append-newline (setq append-newline 't))
@@ -71,7 +91,8 @@
     (if append-newline
 	(insert "\n"))
     (setq fill-prefix prefix)
-    (fill-region point-start (point) alignment)))
+    (fill-region point-start (point) alignment)
+    ))
 
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   (let* ((title-level (--count (equal it 'section) tags))
@@ -196,7 +217,9 @@
 (defun fb2-reader-read ()
   (interactive)
   (let (book title filename bodies)
+    (message "1")
     (setq book (libxml-parse-xml-region (point-min) (point-max)))
+    (message "2")
     ;; (kill-buffer)
     (setq title (fb2-reader--get-title book))
     (get-buffer-create title)
@@ -204,8 +227,10 @@
     ;; Parse fb2
     (setq-local fb2-reader-ids '())
     (setq-local fb2-reader-toc '())
-    (fb2-reader-read-book book)
+    (message "3")
+    (message "%s" (benchmark-run 10 (fb2-reader-read-book book)))
     (fb2-reader-imenu-setup)
+    (message "4")
     ))
 
 ;; (define-derived-mode fb2-reader-mode view-mode "FB2-reader"
@@ -217,3 +242,18 @@
 (provide 'fb2-reader)
 
 ;;; fb2-reader.el ends here
+
+;; fbreader-insert
+;; 1
+;; 2
+;; 3
+;; (162.19268521700002 12 4.4641100919999985)
+;; 4
+
+
+;; plain insert
+;; 1
+;; 2
+;; 3
+;; (150.425805207 12 8.921410747999971)
+;; 4
