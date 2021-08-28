@@ -25,6 +25,8 @@
 
       (cond ((equal current-tag 'text-author)
 	     (fb2-reader--format-string book body tags face current-tag 'right indent))
+	    ((equal current-tag 'poem)
+	     (fb2-reader--parse-poem book body tags face current-tag))
 	    ((equal current-tag 'title)
 	     (fb2-reader--parse-title book body tags face current-tag)
 	     )
@@ -97,7 +99,7 @@
   (let* ((indent 4)
 	 (fill-column-backup fill-column)
 	 (new-fill-column (- fill-column indent)))
-    (insert "\n")
+    (fb2-reader--insert-newline-maybe)
     (setq-local fill-column new-fill-column)
     (dolist (subitem body)
     (fb2-reader-parse book subitem tags face 'left indent))
@@ -105,6 +107,27 @@
     (insert "\n")
     )
   )
+
+(defun fb2-reader--parse-poem (book body tags face current-tag)
+  (dolist (subitem body)
+    (let ((subtags (cons current-tag tags))
+	  (subtag (cl-first subitem))
+	  (subbody (cddr subitem)))
+      (if (equal subtag 'stanza)
+	  (fb2-reader--insert-newline-maybe))
+      (fb2-reader-parse book subitem (cons subtag subtags) face)))
+  (insert "\n")
+  )
+
+(defun fb2-reader--insert-newline-maybe ()
+  "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
+  (let (prev-empty-line-p)
+    (if (equal (char-before) 10)		;char 10 is newline
+	(progn (save-excursion
+		 (backward-char)
+		 (setq prev-empty-line-p (alist-get 'empty-line (get-text-property (point) 'fb2-reader-tags))))
+	       (if prev-empty-line-p (insert "\n")))
+      (insert "\n"))))
 
 (defun fb2-reader--find-subitem (item tag &optional property value)
   (if (listp item)
@@ -189,7 +212,7 @@
   (let (index)
     (dolist (item fb2-reader-toc)
       (push (cons (cl-first item) (cl-third item)) index))
-      (reverse index)))
+      index))
 
 (defun fb2-reader-imenu-setup ()
   (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
