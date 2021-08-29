@@ -76,6 +76,16 @@
     (fill-region point-start (point) alignment)
     ))
 
+(defun fb2-reader--insert-newline-maybe ()
+  "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
+  (let (prev-empty-line-p)
+    (if (equal (char-before) 10)		;char 10 is newline
+	(progn (save-excursion
+		 (backward-char)
+		 (setq prev-empty-line-p (alist-get 'empty-line (get-text-property (point) 'fb2-reader-tags))))
+	       (if prev-empty-line-p (insert "\n")))
+      (insert "\n"))))
+
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   (let* ((title-level (--count (equal it 'section) tags))
 	 (font-height (max 1.2 (- 1.8 (* title-level 0.2))))
@@ -119,55 +129,6 @@
   (insert "\n")
   )
 
-(defun fb2-reader--insert-newline-maybe ()
-  "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
-  (let (prev-empty-line-p)
-    (if (equal (char-before) 10)		;char 10 is newline
-	(progn (save-excursion
-		 (backward-char)
-		 (setq prev-empty-line-p (alist-get 'empty-line (get-text-property (point) 'fb2-reader-tags))))
-	       (if prev-empty-line-p (insert "\n")))
-      (insert "\n"))))
-
-(defun fb2-reader--find-subitem (item tag &optional property value)
-  (if (listp item)
-      (catch 'subitem (dolist (subitem item)
-			(if (and
-			     (listp subitem)
-			     (equal (cl-first subitem) tag)
-			     (or (not property)
-				 (and (listp (cl-second subitem))
-				      (equal value (alist-get property (cl-second subitem))))))
-			    (throw 'subitem subitem))))))
-
-(defun fb2-reader--find-subitem-recursively (item &rest tags)
-  (let (curr-item)
-    (setq curr-item item)
-    (dolist (tag tags curr-item)
-      (setq curr-item (fb2-reader--find-subitem curr-item tag))
-    )))
-
-(defun fb2-reader--get-bodies (book)
-  (let (bodies)
-    (dolist (item (cddr book))
-      (if (equal (cl-first item) 'body)
-	  (push item bodies)))
-    (reverse bodies)))
-
-(defun fb2-reader--get-notes (book)
-  (fb2-reader--find-subitem book 'body 'name "notes"))
-
-(defun fb2-reader--get-title (book)
-  (cl-third (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'book-title)))
-
-(defun fb2-reader--find-binary (book id)
-  (fb2-reader--find-subitem book 'binary 'id id))
-
-(defun fb2-reader--generate-image (binary-item)
-  (when-let* ((img-type (alist-get 'content-type (cl-second binary-item)))
-	      (img-supported (member img-type '("image/jpeg" "image/png"))))
-    (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick t :height 500 :background "white")))
-
 (defun fb2-reader--parse-image (book attributes)
   (message "starting image parsing, attrs: %s" (cdr (car attributes)))
 
@@ -176,6 +137,14 @@
 	 (image (fb2-reader--generate-image binary))
     (insert-image image)
     (insert "\n\n"))))
+
+(defun fb2-reader--find-binary (book id)
+  (fb2-reader--find-subitem book 'binary 'id id))
+
+(defun fb2-reader--generate-image (binary-item)
+  (when-let* ((img-type (alist-get 'content-type (cl-second binary-item)))
+	      (img-supported (member img-type '("image/jpeg" "image/png"))))
+    (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick t :height 500 :background "white")))
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
   (let ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
@@ -203,10 +172,41 @@
     (define-key map [mouse-2] 'fb2-reader-follow-link)
     map))
 
+(defun fb2-reader--find-subitem (item tag &optional property value)
+  (if (listp item)
+      (catch 'subitem (dolist (subitem item)
+			(if (and
+			     (listp subitem)
+			     (equal (cl-first subitem) tag)
+			     (or (not property)
+				 (and (listp (cl-second subitem))
+				      (equal value (alist-get property (cl-second subitem))))))
+			    (throw 'subitem subitem))))))
+
+(defun fb2-reader--find-subitem-recursively (item &rest tags)
+  (let (curr-item)
+    (setq curr-item item)
+    (dolist (tag tags curr-item)
+      (setq curr-item (fb2-reader--find-subitem curr-item tag))
+    )))
+
+(defun fb2-reader--get-bodies (book)
+  (let (bodies)
+    (dolist (item (cddr book))
+      (if (equal (cl-first item) 'body)
+	  (push item bodies)))
+    (reverse bodies)))
+
+(defun fb2-reader--get-title (book)
+  (cl-third (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'book-title)))
+
 (defun fb2-reader-read-book (book)
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body))
   )
+
+
+;; Imenu support
 
 (defun fb2-reader-imenu-create-index ()
   (let (index)
