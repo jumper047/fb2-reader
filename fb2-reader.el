@@ -6,6 +6,13 @@
 (require 'dash)
 (require 's)
 
+
+(defvar-local fb2-reader-ids '()
+  "List of pairs of node's ids and its positions in rendered FB2 document")
+
+(defvar-local fb2-reader-toc '()
+  "Table of contents of FB2 book")
+
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   (or face (setq face 'default))
   (or tags (setq tags '()))
@@ -232,11 +239,28 @@
     (fb2-reader-imenu-setup)
     ))
 
-;; (define-derived-mode fb2-reader-mode view-mode "FB2-reader"
+(define-derived-mode fb2-reader-mode view-mode "FB2-reader"
+  "Major mode for reading FB2 books
+\\{fb2-reader-mode-map}"
+  (let (book title filename bodies)
+    (setq buffer-read-only nil)
+    (setq book (libxml-parse-xml-region (point-min) (point-max)))
+    (erase-buffer)
+    (setq title (fb2-reader--get-title book))
+    (rename-buffer title)
+    ;; (get-buffer-create title)
+    ;; (switch-to-buffer title)
+    (auto-save-mode 0)
+    (setq truncate-lines 1)
+    (buffer-disable-undo)
+    (make-local-variable 'fb2-reader-ids)
+    (make-local-variable 'fb2-reader-toc)
+    (fb2-reader-read-book book)
+    (fb2-reader-imenu-setup)
+    (setq buffer-read-only 't)
+    (set-buffer-modified-p nil)))
 
-  ;; )
-
-;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
+(add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
 
 (provide 'fb2-reader)
 
