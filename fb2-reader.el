@@ -101,7 +101,9 @@
 	 (fill-column-backup fill-column)
 	 (start (point))
 	 title-point)
-    (insert "\n\n")
+
+    (when (> (line-number-at-pos) 0)	;don't insert separator if this is first title
+      (insert "\n\n"))
     (setq title-point (point))
     (setq-local fill-column title-width)
     (fb2-reader--format-string book body tags title-face curr-tag 'center 2)
