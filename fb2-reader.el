@@ -121,7 +121,7 @@
     (fb2-reader--insert-newline-maybe)
     (setq-local fill-column new-fill-column)
     (dolist (subitem body)
-    (fb2-reader-parse book subitem tags face 'left indent))
+    (fb2-reader-parse book subitem (cons current-tag tags) face 'left indent))
     (setq-local fill-column fill-column-backup)
     (insert "\n")
     )
