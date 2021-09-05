@@ -74,14 +74,13 @@
 	 (prefix (string-join (make-list indent " ")))
 	 (prefix-first (string-join (make-list (+ indent indent-first) " "))))
 
-    (insert prefix-first)
+    (insert (propertize prefix-first 'fb2-reader-tags tags))
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) face alignment indent))
     (if append-newline
-	(insert "\n"))
+	(insert (propertize "\n" 'fb2-reader-tags tags)))
     (setq fill-prefix prefix)
-    (fill-region point-start (point) alignment)
-    ))
+    (fill-region point-start (point) alignment)))
 
 (defun fb2-reader--insert-newline-maybe ()
   "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
