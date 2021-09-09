@@ -85,12 +85,16 @@
 (defun fb2-reader--insert-newline-maybe ()
   "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
   (let (prev-empty-line-p)
-    (if (equal (char-before) 10)		;char 10 is newline
-	(progn (save-excursion
-		 (backward-char)
-		 (setq prev-empty-line-p (alist-get 'empty-line (get-text-property (point) 'fb2-reader-tags))))
-	       (if prev-empty-line-p (insert "\n")))
-      (insert "\n"))))
+    (save-excursion
+      (backward-char)
+      (setq already-added
+	    (and (equal (char-before) 10)
+		 (equal (char-after) 10)
+		 ;; (not (member 'empty-line
+			      ;; (get-text-property (point) 'fb2-reader-tags)))
+		 )))
+    (unless already-added
+      (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
 
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   (let* ((title-level (--count (equal it 'section) tags))
@@ -122,7 +126,7 @@
     (dolist (subitem body)
     (fb2-reader-parse book subitem (cons current-tag tags) face 'left indent))
     (setq-local fill-column fill-column-backup)
-    (insert "\n")
+    (fb2-reader--insert-newline-maybe)
     )
   )
 
@@ -134,12 +138,11 @@
       (if (equal subtag 'stanza)
 	  (fb2-reader--insert-newline-maybe))
       (fb2-reader-parse book subitem (cons subtag subtags) face)))
-  (insert "\n")
+  (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special)))
   )
 
-(defun fb2-reader--parse-image (book attributes)
-  (message "starting image parsing, attrs: %s" (cdr (car attributes)))
 
+(defun fb2-reader--parse-image (book attributes)
   (let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	 (binary (fb2-reader--find-binary book id))
 	 (image (fb2-reader--generate-image binary))
