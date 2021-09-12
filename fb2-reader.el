@@ -6,6 +6,8 @@
 (require 'dash)
 (require 's)
 
+;; TODO: optimize rendering by grouping alignment calls
+
 
 (defvar-local fb2-reader-ids '()
   "List of pairs of node's ids and its positions in rendered FB2 document")
@@ -41,7 +43,7 @@
 	     (fb2-reader--parse-cite book body tags face current-tag)
 	     )
 	    ((equal current-tag 'empty-line)
-	     (insert "\n"))
+	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
 	    ;; ((equal current-tag 'image)
 	    ;; (fb2-reader--parse-image book attributes))
 	    ((equal current-tag 'a)
@@ -89,10 +91,7 @@
       (backward-char)
       (setq already-added
 	    (and (equal (char-before) 10)
-		 (equal (char-after) 10)
-		 ;; (not (member 'empty-line
-			      ;; (get-text-property (point) 'fb2-reader-tags)))
-		 )))
+		 (equal (char-after) 10))))
     (unless already-added
       (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
 
@@ -145,9 +144,9 @@
 (defun fb2-reader--parse-image (book attributes)
   (let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	 (binary (fb2-reader--find-binary book id))
-	 (image (fb2-reader--generate-image binary))
+	 (image (fb2-reader--generate-image binary)))
     (insert-image image)
-    (insert "\n\n"))))
+    (insert "\n\n")))
 
 (defun fb2-reader--find-binary (book id)
   (fb2-reader--find-subitem book 'binary 'id id))
@@ -155,7 +154,8 @@
 (defun fb2-reader--generate-image (binary-item)
   (when-let* ((img-type (alist-get 'content-type (cl-second binary-item)))
 	      (img-supported (member img-type '("image/jpeg" "image/png"))))
-    (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick t :height 500 :background "white")))
+    ;; (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick t :height 500 :background "white")))
+    (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick 't)))
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
   (let ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
@@ -213,8 +213,7 @@
 
 (defun fb2-reader-read-book (book)
   (dolist (body (fb2-reader--get-bodies book))
-    (fb2-reader-parse book body))
-  )
+    (fb2-reader-parse book body)))
 
 
 ;; Imenu support
@@ -264,7 +263,8 @@
     (setq buffer-read-only 't)
     (set-buffer-modified-p nil)))
 
-(add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
+;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
 
 (provide 'fb2-reader)
 
+      ;; Вскоре костер уже ревел. Гарв нарубил столько дров, чтобы
