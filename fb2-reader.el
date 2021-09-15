@@ -44,8 +44,8 @@
 	     )
 	    ((equal current-tag 'empty-line)
 	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
-	    ;; ((equal current-tag 'image)
-	    ;; (fb2-reader--parse-image book attributes))
+	    ((equal current-tag 'image)
+	    (fb2-reader--parse-image book attributes tags))
 	    ((equal current-tag 'a)
 	     (fb2-reader--parse-a-link book attributes body tags face current-tag)
 	     )
@@ -141,21 +141,42 @@
   )
 
 
-(defun fb2-reader--parse-image (book attributes)
-  (let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
-	 (binary (fb2-reader--find-binary book id))
-	 (image (fb2-reader--generate-image binary)))
-    (insert-image image)
-    (insert "\n\n")))
+(defun fb2-reader--parse-image (book attributes tags)
+  (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
+	      (binary (fb2-reader--find-binary book id))
+	      (imgdata (fb2-reader--extract-image-data binary))
+	      (data (car imgdata))
+	      (type (cdr imgdata))
+	      (img-raw (fb2-reader--create-image data type))
+	      (size-raw (image-size img-raw 't))
+	      (img-adj (fb2-reader--create-image data type
+						 :max-width 400
+						 :max-height 400))
+	      (width-ch (car (image-size img-adj)))
+	      (prefix-num (round (/ (- fill-column width-ch) 2)))
+	      (prefix-str (string-join (make-list prefix-num " ")))
+	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
+				    'fb2-reader-image-params size-raw)))
+    (insert prefix-str)
+    (insert-image img-adj fill-str)
+    (insert "\n\n")
+    ))
 
 (defun fb2-reader--find-binary (book id)
   (fb2-reader--find-subitem book 'binary 'id id))
 
-(defun fb2-reader--generate-image (binary-item)
-  (when-let* ((img-type (alist-get 'content-type (cl-second binary-item)))
-	      (img-supported (member img-type '("image/jpeg" "image/png"))))
-    ;; (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick t :height 500 :background "white")))
-    (create-image (base64-encode-string (cl-third binary-item)) 'imagemagick 't)))
+(defun fb2-reader--extract-image-data (item)
+  (when-let* ((type-str (alist-get 'content-type (cl-second item)))
+	      (type-char (alist-get type-str
+				    '(("image/jpeg" . jpeg) ("image/png" . png))
+				    nil nil 'equal))
+	      (data (base64-decode-string (cl-third item))))
+    (cons data type-char)))
+
+;; In case I'll need seamlessly switch image backend to imagemagick or something
+(defun fb2-reader--create-image (data type &rest props)
+  (apply 'create-image data type 't props))
+
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
   (let ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
