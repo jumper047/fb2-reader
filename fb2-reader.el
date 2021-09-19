@@ -108,8 +108,10 @@
       (insert "\n\n"))
     (setq title-point (point))
     (setq-local fill-column title-width)
-    (fb2-reader--format-string book body tags title-face curr-tag 'center 2)
+    (dolist (subitem body)
+      (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
+    (insert "\n")
     ;; Add title and position to table of contents
     (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
 	   (toc-elt (list title title-level title-point)))
