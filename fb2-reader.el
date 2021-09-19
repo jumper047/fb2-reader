@@ -104,7 +104,7 @@
 	 (start (point))
 	 title-point)
 
-    (when (> (line-number-at-pos) 0)	;don't insert separator if this is first title
+    (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
       (insert "\n\n"))
     (setq title-point (point))
     (setq-local fill-column title-width)
