@@ -15,6 +15,15 @@
 (defvar-local fb2-reader-toc '()
   "Table of contents of FB2 book")
 
+(defvar-local fb2-reader-cot '()
+  "Reversed table of content (to show title in header line)")
+
+(defconst fb2-reader-header-line-format
+  '(:eval (list (propertize " " 'display '((space :align-to 0)))
+		"><> "
+		(fb2-reader-current-chapter)
+		" <><")))
+
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   (or face (setq face 'default))
   (or tags (setq tags '()))
@@ -102,6 +111,7 @@
 	 (title-face (cons (cons :height (list font-height)) face))
 	 (fill-column-backup fill-column)
 	 (start (point))
+	 end
 	 title-point)
 
     (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
@@ -111,12 +121,14 @@
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
+    (setq end (point))
     (insert "\n")
     ;; Add title and position to table of contents
     (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
-	   (toc-elt (list title title-level title-point)))
-      (push  toc-elt fb2-reader-toc))
-    ))
+	   (toc-elt (list title title-level title-point))
+	   (cot-elt (list end title)))
+      (push  toc-elt fb2-reader-toc)
+      (push cot-elt fb2-reader-cot))))
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
   (let* ((indent 4)
@@ -250,6 +262,34 @@
 (defun fb2-reader-imenu-setup ()
   (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
 
+
+;; Header line
+
+(defun fb2-reader-toc-bisect (toc pos)
+  (let* ((first (caar toc))
+	 (last (caar (last toc)))
+	 (toc-length (length toc))
+	 (mid (car (nth (/ toc-length 2) toc))))
+    (if (<= toc-length 2)
+	(if (> pos last)
+	    (cdadr toc)
+	(cadar toc))
+      (if (< pos mid)
+	  (bisect (butlast toc (1- (- toc-length (/ toc-length 2))))
+		  pos)
+	(bisect (seq-drop toc (/ toc-length 2)) pos)))))
+
+(defun fb2-reader-current-chapter ()
+  (save-excursion
+    (goto-char (window-start))
+    (fb2-reader-toc-bisect fb2-reader-cot (point))))
+
+
+(defun fb2-reader-set-up-header-line ()
+  (setf header-line-format 'fb2-reader-header-line-format))
+
+;; TOC sidebar
+
 (defun fb2-reader-read ()
   (interactive)
   (let (book title filename bodies)
@@ -261,8 +301,11 @@
     ;; Parse fb2
     (setq-local fb2-reader-ids '())
     (setq-local fb2-reader-toc '())
+    (setq-local fb2-reader-cot '())
     (fb2-reader-read-book book)
+    (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     (fb2-reader-imenu-setup)
+    (fb2-reader-set-up-header-line)
     ))
 
 (define-derived-mode fb2-reader-mode view-mode "FB2-reader"
