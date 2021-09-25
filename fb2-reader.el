@@ -253,7 +253,7 @@ They will be used to jump by links in document")
 (defun fb2-reader--get-title (book)
   (cl-third (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'book-title)))
 
-(defun fb2-reader-read-book (book)
+(defun fb2-reader-render (book)
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body)))
 
