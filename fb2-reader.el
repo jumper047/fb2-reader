@@ -7,10 +7,19 @@
 (require 's)
 
 ;; TODO: optimize rendering by grouping alignment calls
+;; TODO: [] bindings for next-prev title
+
+(defcustom fb2-reader-cache-dir (expand-file-name "fb2-reader" user-emacs-directory)
+  ""
+  :type 'string
+  :group 'fb2-reader)
+
+(defvar fb2-reader-index-filename "index.el")
 
 
 (defvar-local fb2-reader-ids '()
-  "List of pairs of node's ids and its positions in rendered FB2 document")
+  "List of pairs of node's ids and its positions in rendered FB2 document
+They will be used to jump by links in document")
 
 (defvar-local fb2-reader-toc '()
   "Table of contents of FB2 book")
@@ -139,9 +148,7 @@
     (dolist (subitem body)
     (fb2-reader-parse book subitem (cons current-tag tags) face 'left indent))
     (setq-local fill-column fill-column-backup)
-    (fb2-reader--insert-newline-maybe)
-    )
-  )
+    (fb2-reader--insert-newline-maybe)))
 
 (defun fb2-reader--parse-poem (book body tags face current-tag)
   (dolist (subitem body)
@@ -290,19 +297,133 @@
 
 ;; TOC sidebar
 
+;; Caching
+
+(defvar fb2-reader-cache-index nil
+  "Contains alist (filename modification-time cache-filename)")
+(defvar fb2-reader--cache-initialized nil)
+
+(defun fb2-reader-init-cache ()
+  (unless (f-exists-p fb2-reader-cache-dir)
+    (make-directory fb2-reader-cache-dir))
+  (let ((idx-path (f-join fb2-reader-cache-dir
+			  fb2-reader-index-filename)))
+    (if (f-exists-p idx-path)
+	(setq fb2-reader-cache-index (fb2-reader-load-cache-index idx-path))))
+  (setq fb2-reader--cache-initialized 't))
+
+(defun fb2-reader-load-cache-index (file)
+  (if (f-exists-p file)
+      (with-temp-buffer
+	(insert-file-contents file)
+	(goto-char (point-min))
+	(read (current-buffer)))))
+
+(defun fb2-reader-save-cache-index (file)
+  (with-temp-file file
+        (set-buffer-file-coding-system 'utf-8)
+	(insert ";; fb2-reader.el -- read fb2 books  ")
+	(insert "file contains cache index, don't edit by hands")
+	(insert "\n")
+	(insert (prin1-to-string fb2-reader-cache-index))
+	(insert "\n")
+    ))
+
+(defun fb2-reader-cache-avail-p (file &optional actual-only)
+  (when (not fb2-reader--cache-initialized)
+    (error "Cache index not read"))
+  (let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
+    (if actual-only
+	(time-equal-p (car idx-entry)
+		      (file-attribute-modification-time
+		       (file-attributes file)))
+      't)))
+
+
+(defun fb2-reader-get-cache (file)
+  (let ((cache-file (cl-second (alist-get file fb2-reader-cache-index nil nil 'equal))))
+    (if (f-exists-p cache-file)
+	(with-temp-buffer
+	  (insert-file-contents cache-file)
+	  (goto-char (point-min))
+	  (read (current-buffer))))))
+
+(defun fb2-reader-cache-buffer (&optional buffer)
+  (or buffer (setq buffer (current-buffer)))
+  (fb2-reader-remove-from-cache (buffer-file-name))
+  (with-current-buffer buffer
+    (let ((idx-filename (f-join fb2-reader-cache-dir fb2-reader-index-filename))
+	  (cache-filename (f-join fb2-reader-cache-dir
+				  (fb2-reader-gen-cache-file-name buffer-file-name)))
+	  (book-content (buffer-substring (point-min) (point-max))))
+      (with-temp-file cache-filename
+	(set-buffer-file-coding-system 'utf-8)
+	(insert ";; fb2-reader.el -- read fb2 books  ")
+	(insert "file contains fb2-reader book cache,")
+	(insert "don't edit by hands")
+	(insert "\n")
+	(set-binary-mode 'stdout 't) 	;to not brake images on save/restore
+	(insert (prin1-to-string (list fb2-reader-ids fb2-reader-toc fb2-reader-cot  book-content)))
+	(insert "\n"))
+      (push (list buffer-file-name
+		  (file-attribute-modification-time
+		   (file-attributes buffer-file-name))
+		  cache-filename) fb2-reader-cache-index)
+      (fb2-reader-save-cache-index idx-filename))))
+
+(defun fb2-reader-remove-from-cache (file)
+  (when-let ((cache-file (cl-second
+			  (alist-get file fb2-reader-cache-index nil nil 'equal))))
+    (f-delete cache-file)
+    (remove file fb2-reader-cache-index)
+    (fb2-reader-save-cache-index
+     (f-join fb2-reader-cache-dir fb2-reader-index-filename))))
+
+(defun fb2-reader-restore-buffer (&optional buffer)
+  (or buffer (setq buffer (current-buffer)))
+  (with-current-buffer buffer
+    (let ((book-cache (fb2-reader-get-cache buffer-file-name)))
+      (erase-buffer)
+      (insert (cl-fourth book-cache))
+      (setq fb2-reader-ids (cl-first book-cache)
+	    fb2-reader-toc (cl-second book-cache)
+	    fb2-reader-cot (cl-third book-cache)))))
+
+(defun fb2-reader-gen-cache-file-name (filepath)
+  (let ((fname (f-base filepath))
+	(chars "abcdefghijklmnopqrstuvwxyz0123456789")
+	(randstr "")
+	randchar
+	randnum)
+    (while (length< randstr 7)
+      (setq randnum (% (abs (random)) (length chars))
+	    randchar (substring chars randnum (1+ randnum))
+	    randstr (concat randstr randchar)))
+    (format "%s%s.el" fname randstr)))
+
+(defun fb2-reader-reload-book ()
+  (interactive))
+
 (defun fb2-reader-read ()
   (interactive)
+  (fb2-reader-init-cache)
   (let (book title filename bodies)
-    (setq book (libxml-parse-xml-region (point-min) (point-max)))
+    (setq book (libxml-parse-xml-region (point-min) (point-max))
+	  filename buffer-file-name)
     ;; (kill-buffer)
     (setq title (fb2-reader--get-title book))
     (get-buffer-create title)
     (switch-to-buffer title)
+    (setq buffer-file-name filename)
     ;; Parse fb2
     (setq-local fb2-reader-ids '())
     (setq-local fb2-reader-toc '())
     (setq-local fb2-reader-cot '())
-    (fb2-reader-read-book book)
+    ;; (fb2-reader-read-book book)
+    (if (fb2-reader-cache-avail-p filename)
+	(fb2-reader-restore-buffer)
+      (fb2-reader-read-book book)
+      (fb2-reader-cache-buffer))
     (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     (fb2-reader-imenu-setup)
     (fb2-reader-set-up-header-line)
