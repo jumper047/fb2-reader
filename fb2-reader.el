@@ -4,9 +4,11 @@
 (require 'cl-lib)
 (require 'imenu)
 (require 'dash)
+(require 'f)
 (require 's)
 
-;; TODO: optimize rendering by grouping alignment calls
+;; TODO: restore position
+;; TODO: imenu
 ;; TODO: [] bindings for next-prev title
 
 (defcustom fb2-reader-cache-dir (expand-file-name "fb2-reader" user-emacs-directory)
@@ -131,7 +133,7 @@ They will be used to jump by links in document")
       (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
     (setq end (point))
-    (insert "\n")
+    (insert (propertize "\n" 'fb2-reader-title 't))
     ;; Add title and position to table of contents
     (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
 	   (toc-elt (list title title-level title-point))
@@ -282,9 +284,9 @@ They will be used to jump by links in document")
 	    (cdadr toc)
 	(cadar toc))
       (if (< pos mid)
-	  (bisect (butlast toc (1- (- toc-length (/ toc-length 2))))
+	  (fb2-reader-toc-bisect (butlast toc (1- (- toc-length (/ toc-length 2))))
 		  pos)
-	(bisect (seq-drop toc (/ toc-length 2)) pos)))))
+	(fb2-reader-toc-bisect (seq-drop toc (/ toc-length 2)) pos)))))
 
 (defun fb2-reader-current-chapter ()
   (save-excursion
