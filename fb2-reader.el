@@ -11,12 +11,13 @@
 ;; TODO: imenu
 ;; TODO: [] bindings for next-prev title
 
-(defcustom fb2-reader-cache-dir (expand-file-name "fb2-reader" user-emacs-directory)
+(defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
   ""
   :type 'string
   :group 'fb2-reader)
 
 (defvar fb2-reader-index-filename "index.el")
+(defvar fb2-reader-position-filename "positions.el")
 
 
 (defvar-local fb2-reader-ids '()
@@ -306,15 +307,15 @@ They will be used to jump by links in document")
 (defvar fb2-reader--cache-initialized nil)
 
 (defun fb2-reader-init-cache ()
-  (unless (f-exists-p fb2-reader-cache-dir)
-    (make-directory fb2-reader-cache-dir))
-  (let ((idx-path (f-join fb2-reader-cache-dir
+  (unless (f-exists-p fb2-reader-settings-dir)
+    (make-directory fb2-reader-settings-dir))
+  (let ((idx-path (f-join fb2-reader-settings-dir
 			  fb2-reader-index-filename)))
     (if (f-exists-p idx-path)
-	(setq fb2-reader-cache-index (fb2-reader-load-cache-index idx-path))))
+	(setq fb2-reader-cache-index (fb2-reader-load-file idx-path))))
   (setq fb2-reader--cache-initialized 't))
 
-(defun fb2-reader-load-cache-index (file)
+(defun fb2-reader-load-file (file)
   (if (f-exists-p file)
       (with-temp-buffer
 	(insert-file-contents file)
@@ -353,8 +354,8 @@ They will be used to jump by links in document")
   (or buffer (setq buffer (current-buffer)))
   (fb2-reader-remove-from-cache (buffer-file-name))
   (with-current-buffer buffer
-    (let ((idx-filename (f-join fb2-reader-cache-dir fb2-reader-index-filename))
-	  (cache-filename (f-join fb2-reader-cache-dir
+    (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
+	  (cache-filename (f-join fb2-reader-settings-dir
 				  (fb2-reader-gen-cache-file-name buffer-file-name)))
 	  (book-content (buffer-substring (point-min) (point-max))))
       (with-temp-file cache-filename
@@ -375,7 +376,7 @@ They will be used to jump by links in document")
     (f-delete cache-file)
     (remove file fb2-reader-cache-index)
     (fb2-reader-save-cache-index
-      (f-join fb2-reader-cache-dir fb2-reader-index-filename))))
+      (f-join fb2-reader-settings-dir fb2-reader-index-filename))))
 
 (defun fb2-reader-restore-buffer (&optional buffer)
   (or buffer (setq buffer (current-buffer)))
@@ -401,13 +402,50 @@ They will be used to jump by links in document")
 	    randstr (concat randstr randchar)))
     (format "%s%s.el" fname randstr)))
 
+(defvar fb2-reader-positions nil
+  "pair of (filepath position)")
+
+(defvar fb2-reader-positions-init nil)
+
+;; should be defcustom
+(defvar fb2-reader-distance-to-save )
+
+(defvar-local fb2-reader-last-saved-position nil)
+
+(defun fb2-reader-init-positions ()
+  (unless (f-exists-p fb2-reader-settings-dir)
+    (make-directory fb2-reader-settings-dir))
+  (let ((pos-path (f-join fb2-reader-settings-dir
+			  fb2-reader-position-filename)))
+    (if (f-exists-p pos-path)
+	(setq fb2-reader-positions (fb2-reader-load-file pos-path)))
+    (setq fb2-reader-positions-init 't)))
+
+(defun fb2-reader-restore-position (&optional buffer)
+  (or buffer (setq buffer (current-buffer)))
+  (when-let* ((filename (buffer-local-value 'buffer-file-name buffer))
+	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
+    (goto-char pos)))
+
+(defun fb2-reader-save-position (&optional pos buffer)
+  (or pos (setq pos (point)))
+  (or buffer (setq buffer (current-buffer)))
+  (let ((filename (buffer-local-value 'buffer-file-name buffer))
+	(pos-path (f-join fb2-reader-settings-dir
+			  fb2-reader-position-filename)))
+    (setq fb2-reader-positions
+	  (cons (list filename pos) (assoc-delete-all filename fb2-reader-positions)))
+    (with-temp-file pos-path
+      (insert (prin1-to-string fb2-reader-positions)))))
+
+
 (defun fb2-reader-reload-book ()
   (interactive))
 
 (defun fb2-reader-read-fb2-zip (file)
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
-			 'directory) (f-path-separator))))
+			 'directory) (f-path-separator))))e
     (call-process "unzip" nil nil nil "-d" tmpdir file)
     (with-current-buffer
 	(find-file-noselect (f-join tmpdir (f-base file)))
@@ -421,7 +459,7 @@ They will be used to jump by links in document")
 (defun fb2-reader-read ()
   (interactive)
   (fb2-reader-init-cache)
-  (let (book title filename bodies)
+  (let (book title filename bodies rendered)
     (setq book (if (equal "zip" (f-ext (buffer-file-name)))
 	(fb2-reader-read-fb2-zip (buffer-file-name))
       (fb2-reader-read-fb2 (buffer-file-name))))
@@ -437,7 +475,11 @@ They will be used to jump by links in document")
     (setq-local fb2-reader-ids '())
     (setq-local fb2-reader-toc '())
     (setq-local fb2-reader-cot '())
+    (with-temp-buffer
       (fb2-reader-render book)
+      (setq rendered (buffer-substring (point-min) (point-max)))
+      )
+    (insert rendered)
     ;; (fb2-reader-read-book book)
     ;; (if (fb2-reader-cache-avail-p filename)
     ;; 	(fb2-reader-restore-buffer)
@@ -448,6 +490,7 @@ They will be used to jump by links in document")
     (fb2-reader-set-up-header-line)
     ))
 
+ 
 (define-derived-mode fb2-reader-mode view-mode "FB2-reader"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
@@ -474,3 +517,4 @@ They will be used to jump by links in document")
 (provide 'fb2-reader)
 
       ;; Вскоре костер уже ревел. Гарв нарубил столько дров, чтобы
+ 
