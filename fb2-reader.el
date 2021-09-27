@@ -334,7 +334,7 @@ They will be used to jump by links in document")
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
   (when (not fb2-reader--cache-initialized)
     (error "Cache index not read"))
-  (let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
+  (when-let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
     (if actual-only
 	(time-equal-p (car idx-entry)
 		      (file-attribute-modification-time
@@ -344,7 +344,7 @@ They will be used to jump by links in document")
 
 (defun fb2-reader-get-cache (file)
   (let ((cache-file (cl-second (alist-get file fb2-reader-cache-index nil nil 'equal))))
-    (if (f-exists-p cache-file)
+    (if (and cache-file (f-exists-p cache-file))
 	(with-temp-buffer
 	  (insert-file-contents cache-file)
 	  (goto-char (point-min))
@@ -380,15 +380,16 @@ They will be used to jump by links in document")
 
 (defun fb2-reader-restore-buffer (&optional buffer)
   (or buffer (setq buffer (current-buffer)))
+  (when (fb2-reader-cache-avail-p
+	 (buffer-local-value 'buffer-file-name buffer) 't)
   (let ((inhibit-null-byte-detection t))
   (with-current-buffer buffer
-    (let ((book-cache (fb2-reader-get-cache buffer-file-name))
-	  (inhibit-null-byte-detection t))
+    (let ((book-cache (fb2-reader-get-cache buffer-file-name)))
       (erase-buffer)
       (insert (cl-fourth book-cache))
       (setq fb2-reader-ids (cl-first book-cache)
 	    fb2-reader-toc (cl-second book-cache)
-	    fb2-reader-cot (cl-third book-cache))))))
+	    fb2-reader-cot (cl-third book-cache)))))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   (let ((fname (f-base filepath))
@@ -445,7 +446,7 @@ They will be used to jump by links in document")
 (defun fb2-reader-read-fb2-zip (file)
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
-			 'directory) (f-path-separator))))e
+			 'directory) (f-path-separator))))
     (call-process "unzip" nil nil nil "-d" tmpdir file)
     (with-current-buffer
 	(find-file-noselect (f-join tmpdir (f-base file)))
