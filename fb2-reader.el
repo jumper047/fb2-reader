@@ -440,17 +440,19 @@ They will be used to jump by links in document")
       (insert (prin1-to-string fb2-reader-positions)))))
 
 
-(defun fb2-reader-reload-book ()
-  (interactive))
-
 (defun fb2-reader-read-fb2-zip (file)
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
-			 'directory) (f-path-separator))))
+			 'directory) (f-path-separator)))
+	fb2-buffer
+	parsed)
     (call-process "unzip" nil nil nil "-d" tmpdir file)
     (with-current-buffer
-	(find-file-noselect (f-join tmpdir (f-base file)))
-      (libxml-parse-xml-region (point-min) (point-max)))))
+	(setq fb2-buffer (find-file-noselect (f-join tmpdir (f-base file))))
+      (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
+    (kill-buffer fb2-buffer)
+    parsed
+    ))
 
 (defun fb2-reader-read-fb2 (file)
   (with-current-buffer (find-file-noselect file)
@@ -491,31 +493,36 @@ They will be used to jump by links in document")
     (fb2-reader-set-up-header-line)
     ))
 
+;; (defvar fb2-reader-mode-map
+;;   (let ((map (make-sparse-keymap))))
+;;   )
+
  
-(define-derived-mode fb2-reader-mode view-mode "FB2-reader"
+(define-derived-mode fb2-reader-mode view-mode "FB2"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
   (let (book title filename bodies)
+    (fb2-reader-init-cache)
+    (fb2-reader-init-positions)
     (setq buffer-read-only nil)
-    (setq book (libxml-parse-xml-region (point-min) (point-max)))
+    (setq book (if (equal "zip" (f-ext (buffer-file-name)))
+		   (fb2-reader-read-fb2-zip (buffer-file-name))
+		 (fb2-reader-read-fb2 (buffer-file-name)))
+	  fb2-reader-file-name (buffer-file-name))
     (erase-buffer)
-    (setq title (fb2-reader--get-title book))
-    (rename-buffer title)
-    ;; (get-buffer-create title)
-    ;; (switch-to-buffer title)
-    (auto-save-mode 0)
+    (rename-buffer (fb2-reader--get-title book))
+    (if (fb2-reader-cache-avail-p (buffer-file-name))
+	(fb2-reader-restore-buffer)
+      (fb2-reader-read-book book)
+      (fb2-reader-cache-buffer))
+    (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     (setq truncate-lines 1)
     (buffer-disable-undo)
-    (make-local-variable 'fb2-reader-ids)
-    (make-local-variable 'fb2-reader-toc)
-    (fb2-reader-read-book book)
+    (set-visited-file-name nil t) ; disable autosaves and save questions
     (fb2-reader-imenu-setup)
     (setq buffer-read-only 't)
     (set-buffer-modified-p nil)))
 
 ;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
 
-(provide 'fb2-reader)
-
-      ;; Вскоре костер уже ревел. Гарв нарубил столько дров, чтобы
- 
+(provide 'fb2-reader) 
