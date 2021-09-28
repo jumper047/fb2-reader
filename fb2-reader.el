@@ -425,24 +425,33 @@ They will be used to jump by links in document")
 	(setq fb2-reader-positions (fb2-reader-load-file pos-path)))
     (setq fb2-reader-positions-init 't)))
 
-(defun fb2-reader-restore-position (&optional buffer)
-  (or buffer (setq buffer (current-buffer)))
-  (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
-	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
-    (goto-char pos)))
-
-(defun fb2-reader-save-position (&optional pos buffer)
-  (or pos (setq pos (point)))
-  (or buffer (setq buffer (current-buffer)))
-  (let ((filename (buffer-local-value 'fb2-reader-file-name buffer))
-	(pos-path (f-join fb2-reader-settings-dir
+(defun fb2-reader-save-pos (filename pos)
+  (let ((pos-path (f-join fb2-reader-settings-dir
 			  fb2-reader-position-filename)))
     (setq fb2-reader-positions
 	  (cons (list filename pos) (assoc-delete-all filename fb2-reader-positions)))
     (with-temp-file pos-path
       (insert (prin1-to-string fb2-reader-positions)))))
 
+(defun fb2-reader-save-curr-buffer ()
+  (if (eq major-mode 'fb2-reader-mode)
+      (fb2-reader-save-pos fb2-reader-file-name (point))
+    (warn "Not a fb2-reader-mode")))
 
+(defun fb2-reader-save-all-buffers ()
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (eq major-mode 'fb2-reader-mode)
+	(fb2-reader-save-curr-buffer)))))
+
+(defun fb2-reader-restore-pos (&optional buffer)
+  (or buffer (setq buffer (current-buffer)))
+  (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
+	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
+    (goto-char pos)))
+
+
+;; TODO: Delete temp directory
 (defun fb2-reader-read-fb2-zip (file)
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
@@ -504,6 +513,9 @@ They will be used to jump by links in document")
 (define-derived-mode fb2-reader-mode view-mode "FB2"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
+  (add-hook 'kill-buffer-hook 'fb2-reader-save-curr-buffer nil t)
+  (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
+  (add-hook 'change-major-mode-hook 'fb2-reader-save-all-buffers)
   (let (book title filename bodies)
     (fb2-reader-init-cache)
     (fb2-reader-init-positions)
