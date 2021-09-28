@@ -30,6 +30,9 @@ They will be used to jump by links in document")
 (defvar-local fb2-reader-cot '()
   "Reversed table of content (to show title in header line)")
 
+(defvar-local fb2-reader-file-name nil
+  "File's file name")
+
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		"><> "
@@ -352,11 +355,11 @@ They will be used to jump by links in document")
 
 (defun fb2-reader-cache-buffer (&optional buffer)
   (or buffer (setq buffer (current-buffer)))
-  (fb2-reader-remove-from-cache (buffer-file-name))
+  (fb2-reader-remove-from-cache fb2-reader-file-name)
   (with-current-buffer buffer
     (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
 	  (cache-filename (f-join fb2-reader-settings-dir
-				  (fb2-reader-gen-cache-file-name buffer-file-name)))
+				  (fb2-reader-gen-cache-file-name fb2-reader-file-name)))
 	  (book-content (buffer-substring (point-min) (point-max))))
       (with-temp-file cache-filename
 	(set-buffer-file-coding-system 'utf-8)
@@ -364,9 +367,9 @@ They will be used to jump by links in document")
 	(insert "file contains fb2-reader book cache, don't edit.\n")
 	(insert (prin1-to-string (list fb2-reader-ids fb2-reader-toc fb2-reader-cot  book-content)))
 	(insert "\n"))
-      (push (list buffer-file-name
+      (push (list fb2-reader-file-name
 		  (file-attribute-modification-time
-		   (file-attributes buffer-file-name))
+		   (file-attributes fb2-reader-file-name))
 		  cache-filename) fb2-reader-cache-index)
       (fb2-reader-save-cache-index idx-filename))))
 
@@ -381,10 +384,10 @@ They will be used to jump by links in document")
 (defun fb2-reader-restore-buffer (&optional buffer)
   (or buffer (setq buffer (current-buffer)))
   (when (fb2-reader-cache-avail-p
-	 (buffer-local-value 'buffer-file-name buffer) 't)
+	 (buffer-local-value 'fb2-reader-file-name buffer) 't)
   (let ((inhibit-null-byte-detection t))
   (with-current-buffer buffer
-    (let ((book-cache (fb2-reader-get-cache buffer-file-name)))
+    (let ((book-cache (fb2-reader-get-cache fb2-reader-file-name)))
       (erase-buffer)
       (insert (cl-fourth book-cache))
       (setq fb2-reader-ids (cl-first book-cache)
@@ -424,14 +427,14 @@ They will be used to jump by links in document")
 
 (defun fb2-reader-restore-position (&optional buffer)
   (or buffer (setq buffer (current-buffer)))
-  (when-let* ((filename (buffer-local-value 'buffer-file-name buffer))
+  (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
 	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
     (goto-char pos)))
 
 (defun fb2-reader-save-position (&optional pos buffer)
   (or pos (setq pos (point)))
   (or buffer (setq buffer (current-buffer)))
-  (let ((filename (buffer-local-value 'buffer-file-name buffer))
+  (let ((filename (buffer-local-value 'fb2-reader-file-name buffer))
 	(pos-path (f-join fb2-reader-settings-dir
 			  fb2-reader-position-filename)))
     (setq fb2-reader-positions
