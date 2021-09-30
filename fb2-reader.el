@@ -433,12 +433,12 @@ They will be used to jump by links in document")
     (with-temp-file pos-path
       (insert (prin1-to-string fb2-reader-positions)))))
 
-(defun fb2-reader-save-curr-buffer ()
+(defun fb2-reader-save-curr-pos ()
   (if (eq major-mode 'fb2-reader-mode)
       (fb2-reader-save-pos fb2-reader-file-name (point))
     (warn "Not a fb2-reader-mode")))
 
-(defun fb2-reader-save-all-buffers ()
+(defun fb2-reader-save-all-pos ()
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       (when (eq major-mode 'fb2-reader-mode)
