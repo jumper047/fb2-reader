@@ -513,9 +513,9 @@ They will be used to jump by links in document")
 (define-derived-mode fb2-reader-mode view-mode "FB2"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
-  (add-hook 'kill-buffer-hook 'fb2-reader-save-curr-buffer nil t)
+  (add-hook 'kill-buffer-hook 'fb2-reader-save-curr-pos nil t)
   (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
-  (add-hook 'change-major-mode-hook 'fb2-reader-save-all-buffers)
+  (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
   (let (book title filename bodies)
     (fb2-reader-init-cache)
     (fb2-reader-init-positions)
