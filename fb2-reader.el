@@ -10,6 +10,8 @@
 ;; TODO: restore position
 ;; TODO: imenu
 ;; TODO: [] bindings for next-prev title
+;; TODO: metadata screen
+;; TODO: function to reload book
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
   ""
@@ -17,8 +19,20 @@
   :group 'fb2-reader)
 
 (defvar fb2-reader-index-filename "index.el")
+
 (defvar fb2-reader-position-filename "positions.el")
 
+(defvar fb2-reader-cache-index nil
+  "Contains alist (filename modification-time cache-filename)")
+
+(defvar fb2-reader--cache-initialized nil)
+
+(defvar fb2-reader-positions nil
+  "pair of (filepath position)")
+
+(defvar fb2-reader-positions-init nil)
+
+(defvar-local fb2-reader-last-saved-position nil)
 
 (defvar-local fb2-reader-ids '()
   "List of pairs of node's ids and its positions in rendered FB2 document
@@ -40,6 +54,8 @@ They will be used to jump by links in document")
 		" <><")))
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
+  "Recursively parse ITEM (part of the BOOK) and insert it into the buffer."
+
   (or face (setq face 'default))
   (or tags (setq tags '()))
   (or alignment (setq alignment 'left))
@@ -88,6 +104,8 @@ They will be used to jump by links in document")
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
 (defun fb2-reader--format-string (book body tags face curr-tag  alignment indent  &optional indent-first append-newline)
+  "Format BODY (part of the BOOK) into string and insert it."
+
   (or indent-first (setq indent-first 2))
   (or append-newline (setq append-newline 't))
   (let* ((point-start (point))
@@ -120,6 +138,8 @@ They will be used to jump by links in document")
       (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
 
 (defun fb2-reader--parse-title (book body tags face curr-tag)
+  "Parse and insert BODY (BOOK 's part) as title."
+
   (let* ((title-level (--count (equal it 'section) tags))
 	 (font-height (max 1.2 (- 1.8 (* title-level 0.2))))
 	 (title-width (round (/ fill-column font-height)))
@@ -146,6 +166,8 @@ They will be used to jump by links in document")
       (push cot-elt fb2-reader-cot))))
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
+  "Parse and insert BODY (BOOK 's part) as cite."
+
   (let* ((indent 4)
 	 (fill-column-backup fill-column)
 	 (new-fill-column (- fill-column indent)))
@@ -157,6 +179,8 @@ They will be used to jump by links in document")
     (fb2-reader--insert-newline-maybe)))
 
 (defun fb2-reader--parse-poem (book body tags face current-tag)
+  "Parse and insert BODY (BOOK 's part) as poem."
+
   (dolist (subitem body)
     (let ((subtags (cons current-tag tags))
 	  (subtag (cl-first subitem))
@@ -169,6 +193,8 @@ They will be used to jump by links in document")
 
 
 (defun fb2-reader--parse-image (book attributes tags)
+  "Parse and insert image from BOOK described with ATTRIBUTES. Append TAGS to inserted string."
+
   (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	      (binary (fb2-reader--find-binary book id))
 	      (imgdata (fb2-reader--extract-image-data binary))
@@ -190,9 +216,13 @@ They will be used to jump by links in document")
     ))
 
 (defun fb2-reader--find-binary (book id)
+  "Find binary with ID in BOOK."
+
   (fb2-reader--find-subitem book 'binary 'id id))
 
 (defun fb2-reader--extract-image-data (item)
+  "Extract image data from xml ITEM."
+
   (when-let* ((type-str (alist-get 'content-type (cl-second item)))
 	      (type-char (alist-get type-str
 				    '(("image/jpeg" . jpeg) ("image/png" . png))
@@ -202,10 +232,14 @@ They will be used to jump by links in document")
 
 ;; In case I'll need seamlessly switch image backend to imagemagick or something
 (defun fb2-reader--create-image (data type &rest props)
+  "Create image of type TYPE from image DATA."
+
   (apply 'create-image data type 't props))
 
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
+  "Parse and insert link described with ATTRIBUTES from BOOK."
+
   (let ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	(start (point))
 	(link-face (cons (cons :inherit (list 'link)) face)))
@@ -218,6 +252,8 @@ They will be used to jump by links in document")
 				 'mouse-face 'highlight))))
 
 (defun fb2-reader-follow-link ()
+  "Follow link under point."
+  
   (interactive)
   (push-mark)
   (let* ((target (get-text-property (point) 'fb2-reader-target))
@@ -232,6 +268,10 @@ They will be used to jump by links in document")
     map))
 
 (defun fb2-reader--find-subitem (item tag &optional property value)
+  "Find first ITEM 's child with TAG.
+
+Founded item should have PROPERTY with certain VALUE,
+if these parameters are set."
   (if (listp item)
       (catch 'subitem (dolist (subitem item)
 			(if (and
@@ -243,6 +283,8 @@ They will be used to jump by links in document")
 			    (throw 'subitem subitem))))))
 
 (defun fb2-reader--find-subitem-recursively (item &rest tags)
+  "Find ITEM 's subitem with first tag from TAGS, then subitem's subitem with second tag and so on."
+
   (let (curr-item)
     (setq curr-item item)
     (dolist (tag tags curr-item)
@@ -250,6 +292,8 @@ They will be used to jump by links in document")
     )))
 
 (defun fb2-reader--get-bodies (book)
+  "Get list of all bodies from the BOOK."
+
   (let (bodies)
     (dolist (item (cddr book))
       (if (equal (cl-first item) 'body)
@@ -257,9 +301,13 @@ They will be used to jump by links in document")
     (reverse bodies)))
 
 (defun fb2-reader--get-title (book)
+  "Get title from BOOK."
+
   (cl-third (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'book-title)))
 
 (defun fb2-reader-render (book)
+  "Render BOOK and insert it into the current buffer."
+
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body)))
 
@@ -279,6 +327,8 @@ They will be used to jump by links in document")
 ;; Header line
 
 (defun fb2-reader-toc-bisect (toc pos)
+  "Get from TOC element with position right before POS."
+
   (let* ((first (caar toc))
 	 (last (caar (last toc)))
 	 (toc-length (length toc))
@@ -293,23 +343,23 @@ They will be used to jump by links in document")
 	(fb2-reader-toc-bisect (seq-drop toc (/ toc-length 2)) pos)))))
 
 (defun fb2-reader-current-chapter ()
+  "Get current chapter's title."
+
   (save-excursion
     (goto-char (window-start))
     (fb2-reader-toc-bisect fb2-reader-cot (point))))
 
 
 (defun fb2-reader-set-up-header-line ()
-  (setf header-line-format 'fb2-reader-header-line-format))
+  "Set up header line in current buffer."
 
-;; TOC sidebar
+  (setf header-line-format 'fb2-reader-header-line-format))
 
 ;; Caching
 
-(defvar fb2-reader-cache-index nil
-  "Contains alist (filename modification-time cache-filename)")
-(defvar fb2-reader--cache-initialized nil)
-
 (defun fb2-reader-init-cache ()
+  "Create cache dir if necessary, load index file."
+  
   (unless (f-exists-p fb2-reader-settings-dir)
     (make-directory fb2-reader-settings-dir))
   (let ((idx-path (f-join fb2-reader-settings-dir
@@ -319,6 +369,8 @@ They will be used to jump by links in document")
   (setq fb2-reader--cache-initialized 't))
 
 (defun fb2-reader-load-file (file)
+  "Load text from FILE as elisp."
+
   (if (f-exists-p file)
       (with-temp-buffer
 	(insert-file-contents file)
@@ -326,6 +378,8 @@ They will be used to jump by links in document")
 	(read (current-buffer)))))
 
 (defun fb2-reader-save-cache-index (file)
+  "Serialize current cache index and save it to FILE."
+  
   (with-temp-file file
         (set-buffer-file-coding-system 'utf-8)
 	(insert ";; fb2-reader.el -- read fb2 books  ")
@@ -335,6 +389,10 @@ They will be used to jump by links in document")
     ))
 
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
+  "Check if cache for FILE available.
+
+If ACTUAL-ONLY return 't if cache is existed and actual."
+  
   (when (not fb2-reader--cache-initialized)
     (error "Cache index not read"))
   (when-let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
@@ -346,6 +404,8 @@ They will be used to jump by links in document")
 
 
 (defun fb2-reader-get-cache (file)
+  "Load cache for FILE if it exists."
+
   (let ((cache-file (cl-second (alist-get file fb2-reader-cache-index nil nil 'equal))))
     (if (and cache-file (f-exists-p cache-file))
 	(with-temp-buffer
@@ -354,6 +414,8 @@ They will be used to jump by links in document")
 	  (read (current-buffer))))))
 
 (defun fb2-reader-cache-buffer (&optional buffer)
+  "Save BUFFER to cache. Save current if buffer arg missed."
+
   (or buffer (setq buffer (current-buffer)))
   (fb2-reader-remove-from-cache fb2-reader-file-name)
   (with-current-buffer buffer
@@ -374,6 +436,8 @@ They will be used to jump by links in document")
       (fb2-reader-save-cache-index idx-filename))))
 
 (defun fb2-reader-remove-from-cache (file)
+  "Remove FILE from cache."
+
   (when-let ((cache-file (cl-second
 			  (alist-get file fb2-reader-cache-index nil nil 'equal))))
     (f-delete cache-file)
@@ -382,6 +446,8 @@ They will be used to jump by links in document")
       (f-join fb2-reader-settings-dir fb2-reader-index-filename))))
 
 (defun fb2-reader-restore-buffer (&optional buffer)
+  "Restore BUFFER from cache. Restore current if arg missed."
+
   (or buffer (setq buffer (current-buffer)))
   (when (fb2-reader-cache-avail-p
 	 (buffer-local-value 'fb2-reader-file-name buffer) 't)
@@ -395,6 +461,8 @@ They will be used to jump by links in document")
 	    fb2-reader-cot (cl-third book-cache)))))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
+  "Generate file name for FILEPATH."
+
   (let ((fname (f-base filepath))
 	(chars "abcdefghijklmnopqrstuvwxyz0123456789")
 	(randstr "")
@@ -406,17 +474,10 @@ They will be used to jump by links in document")
 	    randstr (concat randstr randchar)))
     (format "%s%s.el" fname randstr)))
 
-(defvar fb2-reader-positions nil
-  "pair of (filepath position)")
-
-(defvar fb2-reader-positions-init nil)
-
-;; should be defcustom
-(defvar fb2-reader-distance-to-save )
-
-(defvar-local fb2-reader-last-saved-position nil)
 
 (defun fb2-reader-init-positions ()
+  "Create dir if necessary, load positions file."
+
   (unless (f-exists-p fb2-reader-settings-dir)
     (make-directory fb2-reader-settings-dir))
   (let ((pos-path (f-join fb2-reader-settings-dir
@@ -426,6 +487,8 @@ They will be used to jump by links in document")
     (setq fb2-reader-positions-init 't)))
 
 (defun fb2-reader-save-pos (filename pos)
+  "Save position POS to FILENAME."
+
   (let ((pos-path (f-join fb2-reader-settings-dir
 			  fb2-reader-position-filename)))
     (setq fb2-reader-positions
@@ -434,17 +497,23 @@ They will be used to jump by links in document")
       (insert (prin1-to-string fb2-reader-positions)))))
 
 (defun fb2-reader-save-curr-pos ()
+  "Save current position in curent buffer."
+
   (if (eq major-mode 'fb2-reader-mode)
       (fb2-reader-save-pos fb2-reader-file-name (point))
     (warn "Not a fb2-reader-mode")))
 
 (defun fb2-reader-save-all-pos ()
+  "Save positions in all fb2-reader buffers."
+
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       (when (eq major-mode 'fb2-reader-mode)
 	(fb2-reader-save-curr-buffer)))))
 
 (defun fb2-reader-restore-pos (&optional buffer)
+  "Restore position in current buffer or BUFFER."
+
   (or buffer (setq buffer (current-buffer)))
   (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
 	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
@@ -453,6 +522,10 @@ They will be used to jump by links in document")
 
 ;; TODO: Delete temp directory
 (defun fb2-reader-read-fb2-zip (file)
+  "Read book from fb2.zip FILE.
+
+Book name should be the same as archive except .zip extension."
+
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
 			 'directory) (f-path-separator)))
@@ -467,6 +540,8 @@ They will be used to jump by links in document")
     ))
 
 (defun fb2-reader-read-fb2 (file)
+  "Read book from .fb2 FILE."
+  
   (with-current-buffer (find-file-noselect file)
     (libxml-parse-xml-region (point-min) (point-max))))
 
