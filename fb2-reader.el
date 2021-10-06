@@ -54,7 +54,8 @@ They will be used to jump by links in document")
 		" <><")))
 
 (defun fb2-reader-count-tags (tag tree)
-  "Get amount of tags named TAG in BOOK."
+  "Get amount of tags named TAG in TREE."
+
   (if (stringp tree) 0
   (let* ((current-tag (cl-first tree))
 	 (attributes (cl-second tree))
