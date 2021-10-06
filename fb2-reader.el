@@ -100,7 +100,11 @@ They will be used to jump by links in document")
 	    ((equal current-tag 'empty-line)
 	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
 	    ((equal current-tag 'image)
-	    (fb2-reader--parse-image book attributes tags))
+	     ;; Disabled due new async rendering function
+	     ;; (fb2-reader--parse-image book attributes tags)
+	     (fb2-reader--pickle-image book attributes tags)
+	     )
+	     
 	    ((equal current-tag 'a)
 	     (fb2-reader--parse-a-link book attributes body tags face current-tag)
 	     )
@@ -164,6 +168,7 @@ They will be used to jump by links in document")
 	 end
 	 title-point)
 
+
     (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
       (insert "\n\n"))
     (setq title-point (point))
@@ -208,7 +213,9 @@ They will be used to jump by links in document")
 
 
 (defun fb2-reader--parse-image (book attributes tags)
-  "Parse and insert image from BOOK described with ATTRIBUTES. Append TAGS to inserted string."
+  "Parse and insert image from BOOK described with ATTRIBUTES.
+
+ Append TAGS to inserted string."
 
   (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	      (binary (fb2-reader--find-binary book id))
@@ -229,6 +236,69 @@ They will be used to jump by links in document")
     (insert-image img-adj fill-str)
     (insert "\n\n")
     ))
+
+(defun fb2-reader--pickle-image (book attributes tags)
+  "Save all image-related info from BOOK ATTRIBUTES and TAGS to text property.
+
+It should be rendered when propertized text will be inserted into buffer."
+  (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
+	      (binary (fb2-reader--find-binary book id))
+	      (type-str (alist-get 'content-type (cl-second binary)))
+	      (data-str (cl-third binary)))
+    (insert (propertize " "
+			'fb2-reader-image-type type-str
+			'fb2-reader-image-data data-str
+			'fb2-reader-tags tags))
+
+    ))
+
+(defun fb2-reader--insert-image (data type tags)
+  "Generate image from DATA of type TYPE and insert it at point.
+
+ Property fb2-reader-tags will be set to TAGS and appended
+to placeholder."
+
+  (when-let* ((type-char (alist-get type
+				    '(("image/jpeg" . jpeg) ("image/png" . png))
+				    nil nil 'equal))
+	      (data-decoded (base64-decode-string data))
+	      (img-raw (fb2-reader--create-image data-decoded type-char))
+	      (size-raw (image-size img-raw 't))
+	      (img-adj (fb2-reader--create-image data-decoded type-char
+						 ;; TODO: should be customizable
+						 :max-width 400
+						 :max-height 400))
+	      (width-ch (car (image-size img-adj)))
+	      (prefix-num (round (/ (- fill-column width-ch) 2)))
+	      (prefix-str (string-join (make-list prefix-num " ")))
+	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
+				    'fb2-reader-image-params size-raw)))
+    (insert prefix-str)
+    (insert-image img-adj fill-str)
+    (insert "\n\n")
+    ))
+
+(defun fb2-reader-restore-images (&optional buffer)
+  "Find all images pickled in buffer and restore them"
+
+  (interactive)
+  (or buffer (setq buffer (current-buffer)))
+  (with-current-buffer buffer
+    (goto-char (point-min))
+    (while (not (eobp))
+      (let ((next-change (or (next-single-property-change (point) 'fb2-reader-image-data)
+			     (point-max)))
+	    (plist (text-properties-at (point)))
+	    image-data
+	    image-type
+	    tags)
+	(when (plist-member plist 'fb2-reader-image-data)
+	  (setq image-data (plist-get plist 'fb2-reader-image-data)
+		image-type (plist-get plist 'fb2-reader-image-type)
+		tags (plist-get plist 'fb2-reader-tags))
+	  (delete-char 1)
+	  (fb2-reader--insert-image image-data image-type tags))
+	(goto-char next-change)))))
 
 (defun fb2-reader--find-binary (book id)
   "Find binary with ID in BOOK."
@@ -595,16 +665,16 @@ Book name should be the same as archive except .zip extension."
     (fb2-reader-set-up-header-line)
     ))
 
-
 (defun fb2-reader-read-async ()
   (interactive)
   (fb2-reader-init-cache)
   (let (book title filename bodies rendered)
-    (setq book (if (equal "zip" (f-ext (buffer-file-name)))
-	(fb2-reader-read-fb2-zip (buffer-file-name))
-      (fb2-reader-read-fb2 (buffer-file-name))))
-    ;; (setq book (libxml-parse-xml-region (point-min) (point-max))
-    ;; 	  filename buffer-file-name)
+    ;; (setq book (if (equal "zip" (f-ext (buffer-file-name)))
+    ;; 	(fb2-reader-read-fb2-zip (buffer-file-name))
+    ;;   (fb2-reader-read-fb2 (buffer-file-name))))
+
+    (setq book (libxml-parse-xml-region (point-min) (point-max))
+	  filename buffer-file-name)
     ;; (kill-buffer)
     (setq filename buffer-file-name)
     (setq title (fb2-reader--get-title book))
@@ -620,26 +690,23 @@ Book name should be the same as archive except .zip extension."
     (async-start
      `(lambda ()
 	,(async-inject-variables "\\`\\(fb2-reader\\)-")
-	;; ,(async-inject-variables "book")
+	,(async-inject-variables "book")
 	(setq load-path (quote ,load-path))
 	      ;; window-system (quote ,window-system))
 	(require 'fb2-reader)
 	(with-temp-buffer
 	  (fb2-reader-render (quote ,book))
-	  (insert "lalala")
-	  (buffer-substring (point-min) (point-max))
+	  (prin1-to-string (buffer-substring (point-min) (point-max)))
 	  )
 	)
      (lambda (result)
        ;; (fb2-reader-cache-rendered (file rendered)
        (setq fb2-reader-rendered-tmp result)
        (with-current-buffer title
-       (message "test %s" (current-buffer))
-       (insert "llala")
-       (insert fb2-reader-rendered-tmp)
-       )
-       )
-     )
+       ;; For some reason propertized string returned from async process
+       ;; loses hash at it's beginning. 
+	 (insert (read (concat "#" fb2-reader-rendered-tmp)))
+	 (fb2-reader-restore-images))))
     ;; (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     ;; (fb2-reader-imenu-setup)
     ;; (fb2-reader-set-up-header-line)
