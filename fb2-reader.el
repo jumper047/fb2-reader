@@ -89,6 +89,8 @@ They will be used to jump by links in document")
 
       (cond ((equal current-tag 'text-author)
 	     (fb2-reader--format-string book body tags face current-tag 'right indent))
+	    ((equal current-tag 'section)
+	     (fb2-reader--parse-section book attributes body tags face current-tag))
 	    ((equal current-tag 'poem)
 	     (fb2-reader--parse-poem book body tags face current-tag))
 	    ((equal current-tag 'title)
@@ -158,12 +160,11 @@ They will be used to jump by links in document")
 
 (defun fb2-reader--parse-section (book attributes body tags face curr-tag)
   (let ((start (point))
-	(id (alist-get 'id attributes))
-	(tags (cons 'section tags)))
+	(id (alist-get 'id attributes)))
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) face))
     (when id
-      (add-text-properties start (point) '(fb2-reader-id id)))))
+      (add-text-properties start (point) (list 'fb2-reader-id (intern id))))))
 
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   "Parse and insert BODY (BOOK 's part) as title."
@@ -334,7 +335,7 @@ to placeholder."
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
   "Parse and insert link described with ATTRIBUTES from BOOK."
 
-  (let ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
+  (let ((id (intern (replace-regexp-in-string "#" "" (cdr (car attributes)))))
 	(start (point))
 	(link-face (cons (cons :inherit (list 'link)) face)))
     (dolist (subitem body)
@@ -345,13 +346,28 @@ to placeholder."
 				 'keymap fb2-reader-link-map
 				 'mouse-face 'highlight))))
 
+(defun fb2-reader--get-target-pos (id)
+  (save-excursion
+    (goto-char (point-min))
+    
+    (let (link-found next-change plist target-pos)
+      (while (not (or link-found (eobp)))
+	(setq next-change (or (next-single-property-change (point) 'fb2-reader-id)
+			      (point-max))
+	      plist (text-properties-at (point))
+	      link-found (equal id (plist-get plist 'fb2-reader-id))
+	      target-pos (point))
+	(goto-char next-change))
+      (if link-found target-pos))))
+      
+
 (defun fb2-reader-follow-link ()
   "Follow link under point."
   
   (interactive)
   (push-mark)
-  (let* ((target (get-text-property (point) 'fb2-reader-target))
-	 (position (alist-get (intern target) fb2-reader-ids)))
+  (when-let* ((target-id (get-text-property (point) 'fb2-reader-target))
+	      (position (fb2-reader--get-target-pos target-id)))
     (goto-char position)))
 
 (defvar fb2-reader-link-map
