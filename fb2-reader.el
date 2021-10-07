@@ -156,6 +156,15 @@ They will be used to jump by links in document")
     (unless already-added
       (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
 
+(defun fb2-reader--parse-section (book attributes body tags face curr-tag)
+  (let ((start (point))
+	(id (alist-get 'id attributes))
+	(tags (cons 'section tags)))
+    (dolist (subitem body)
+      (fb2-reader-parse book subitem (cons curr-tag tags) face))
+    (when id
+      (add-text-properties start (point) '(fb2-reader-id id)))))
+
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   "Parse and insert BODY (BOOK 's part) as title."
 
@@ -164,26 +173,26 @@ They will be used to jump by links in document")
 	 (title-width (round (/ fill-column font-height)))
 	 (title-face (cons (cons :height (list font-height)) face))
 	 (fill-column-backup fill-column)
-	 (start (point))
-	 end
-	 title-point)
+	 start
+	 end)
 
 
     (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
       (insert "\n\n"))
-    (setq title-point (point))
+    (setq start (point))
     (setq-local fill-column title-width)
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
     (setq end (point))
-    (insert (propertize "\n" 'fb2-reader-title 't))
-    ;; Add title and position to table of contents
-    (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
-	   (toc-elt (list title title-level title-point))
-	   (cot-elt (list end title)))
-      (push  toc-elt fb2-reader-toc)
-      (push cot-elt fb2-reader-cot))))
+    (insert "\n")
+    (add-text-properties start end '(fb2-reader-title t))))
+;; ;; Add title and position to table of contents
+;; (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
+;; 	   (toc-elt (list title title-level title-point))
+;; 	   (cot-elt (list end title)))
+;;   (push  toc-elt fb2-reader-toc)
+;;   (push cot-elt fb2-reader-cot))))
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
   "Parse and insert BODY (BOOK 's part) as cite."
@@ -400,10 +409,19 @@ if these parameters are set."
 ;; Imenu support
 
 (defun fb2-reader-imenu-create-index ()
-  (let (index)
-    (dolist (item fb2-reader-toc)
-      (push (cons (cl-first item) (cl-third item)) index))
-      index))
+  (goto-char (point-min))
+  (let (next-change plist index)
+  (while (not (eobp))
+    (setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
+			  (point-max))
+	  plist (text-properties-at (point)))
+    (when (plist-member plist 'fb2-reader-title)
+      (push (cons (s-replace "\n" " " (s-trim (s-collapse-whitespace
+					       (buffer-substring-no-properties
+						(point) next-change)))) (point))
+	    index))
+    (goto-char next-change))
+  index))
 
 (defun fb2-reader-imenu-setup ()
   (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
