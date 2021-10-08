@@ -12,6 +12,7 @@
 ;; TODO: [] bindings for next-prev title
 ;; TODO: metadata screen
 ;; TODO: function to reload book
+;; TODO: cleanup comments
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
   ""
@@ -466,7 +467,21 @@ if these parameters are set."
 
   (save-excursion
     (goto-char (window-start))
-    (fb2-reader-toc-bisect fb2-reader-cot (point))))
+    ;; step forward for one char because when cursor appends exactly on title's
+    ;; border prev/next single property function skips current change
+    (forward-char 1)
+    (if (plist-member (text-properties-at (point)) 'fb2-reader-title)
+	(progn (setq title-end (next-single-property-change (point) 'fb2-reader-title))
+	       (goto-char title-end))
+      (setq title-end (previous-single-property-change (point) 'fb2-reader-title))
+      (if title-end (goto-char title-end)))
+
+    (setq title-begin (previous-single-property-change (point) 'fb2-reader-title))
+
+    (when (and title-begin title-end)
+      (s-replace "\n" " " (s-trim (s-collapse-whitespace
+				   (buffer-substring-no-properties
+				    title-begin title-end)))))))
 
 
 (defun fb2-reader-set-up-header-line ()
