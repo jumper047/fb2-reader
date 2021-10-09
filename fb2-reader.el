@@ -43,21 +43,6 @@
 		(fb2-reader-current-chapter)
 		" <><")))
 
-(defun fb2-reader-count-tags (tag tree)
-  "Get amount of tags named TAG in TREE."
-
-  (if (stringp tree) 0
-  (let* ((current-tag (cl-first tree))
-	 (attributes (cl-second tree))
-	 (body (cddr tree))
-	 (tag-count (if (equal current-tag tag) 1 0)))
-    (dolist (subtree body)
-      (setq tag-count (+ tag-count (fb2-reader-count-tags tag subtree)))
-      )
-    tag-count
-    )
-))
-
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   "Recursively parse ITEM (part of the BOOK) and insert it into the buffer."
 
