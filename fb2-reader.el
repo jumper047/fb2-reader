@@ -470,11 +470,11 @@ if these parameters are set."
     ;; step forward for one char because when cursor appends exactly on title's
     ;; border prev/next single property function skips current change
     (forward-char 1)
-    (if (plist-member (text-properties-at (point)) 'fb2-reader-title)
-	(progn (setq title-end (next-single-property-change (point) 'fb2-reader-title))
-	       (goto-char title-end))
-      (setq title-end (previous-single-property-change (point) 'fb2-reader-title))
-      (if title-end (goto-char title-end)))
+    (setq title-end (funcall (if (plist-member (text-properties-at (point)) 'fb2-reader-title)
+				 'next-single-property-change
+			       'previous-single-property-change)
+			     (point) 'fb2-reader-title))
+    (if title-end (goto-char title-end))
 
     (setq title-begin (previous-single-property-change (point) 'fb2-reader-title))
 
