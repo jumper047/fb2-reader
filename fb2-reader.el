@@ -20,7 +20,6 @@
   :group 'fb2-reader)
 
 (defvar fb2-reader-index-filename "index.el")
-
 (defvar fb2-reader-position-filename "positions.el")
 
 (defvar fb2-reader-cache-index nil
@@ -34,16 +33,6 @@
 (defvar fb2-reader-positions-initialized nil)
 
 (defvar-local fb2-reader-last-saved-position nil)
-
-(defvar-local fb2-reader-ids '()
-  "List of pairs of node's ids and its positions in rendered FB2 document
-They will be used to jump by links in document")
-
-(defvar-local fb2-reader-toc '()
-  "Table of contents of FB2 book")
-
-(defvar-local fb2-reader-cot '()
-  "Reversed table of content (to show title in header line)")
 
 (defvar-local fb2-reader-file-name nil
   "File's file name")
@@ -83,10 +72,6 @@ They will be used to jump by links in document")
     (let ((current-tag (cl-first item))
 	  (attributes (cl-second item))
 	  (body (cddr item)))
-
-      ;; Create list of all ids in document
-      (when-let ((id (alist-get 'id attributes)))
-	(push (cons (intern id) (point)) fb2-reader-ids))
 
       (cond ((equal current-tag 'text-author)
 	     (fb2-reader--format-string book body tags face current-tag 'right indent))
@@ -189,12 +174,7 @@ They will be used to jump by links in document")
     (setq end (point))
     (insert "\n")
     (add-text-properties start end '(fb2-reader-title t))))
-;; ;; Add title and position to table of contents
-;; (let* ((title (s-replace "\n" " " (s-trim (s-collapse-whitespace (buffer-substring-no-properties start (point))))))
-;; 	   (toc-elt (list title title-level title-point))
-;; 	   (cot-elt (list end title)))
-;;   (push  toc-elt fb2-reader-toc)
-;;   (push cot-elt fb2-reader-cot))))
+
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
   "Parse and insert BODY (BOOK 's part) as cite."
@@ -561,7 +541,6 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 	(set-buffer-file-coding-system 'utf-8)
 	(insert ";; fb2-reader.el -- read fb2 books  ")
 	(insert "file contains fb2-reader book cache, don't edit.\n")
-	(insert (prin1-to-string (list fb2-reader-ids fb2-reader-toc fb2-reader-cot  book-content)))
 	(insert "\n"))
       (push (list fb2-reader-file-name
 		  (file-attribute-modification-time
@@ -589,10 +568,7 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
   (with-current-buffer buffer
     (let ((book-cache (fb2-reader-get-cache fb2-reader-file-name)))
       (erase-buffer)
-      (insert (cl-fourth book-cache))
-      (setq fb2-reader-ids (cl-first book-cache)
-	    fb2-reader-toc (cl-second book-cache)
-	    fb2-reader-cot (cl-third book-cache)))))))
+      (insert (cl-fourth book-cache)))))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
@@ -696,9 +672,6 @@ Book name should be the same as archive except .zip extension."
     (switch-to-buffer title)
     (setq buffer-file-name filename)
     ;; Parse fb2
-    (setq-local fb2-reader-ids '())
-    (setq-local fb2-reader-toc '())
-    (setq-local fb2-reader-cot '())
     (with-temp-buffer
       (fb2-reader-render book)
       (setq rendered (buffer-substring (point-min) (point-max)))
@@ -709,7 +682,6 @@ Book name should be the same as archive except .zip extension."
     ;; 	(fb2-reader-restore-buffer)
 
     ;;   (fb2-reader-cache-buffer))
-    (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     (fb2-reader-imenu-setup)
     (fb2-reader-set-up-header-line)
     ))
@@ -731,9 +703,6 @@ Book name should be the same as archive except .zip extension."
     (switch-to-buffer title)
     (setq buffer-file-name filename)
     ;; Parse fb2
-    (setq-local fb2-reader-ids '())
-    (setq-local fb2-reader-toc '())
-    (setq-local fb2-reader-cot '())
 ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
     (message "title is %s" title)
     (async-start
@@ -756,7 +725,6 @@ Book name should be the same as archive except .zip extension."
        ;; loses hash at it's beginning. 
 	 (insert (read (concat "#" fb2-reader-rendered-tmp)))
 	 (fb2-reader-restore-images))))
-    ;; (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     ;; (fb2-reader-imenu-setup)
     ;; (fb2-reader-set-up-header-line)
     ))
@@ -789,7 +757,6 @@ Book name should be the same as archive except .zip extension."
 	(fb2-reader-restore-buffer)
       (fb2-reader-read-book book)
       (fb2-reader-cache-buffer))
-    (setq-local fb2-reader-cot (reverse fb2-reader-cot))
     (setq truncate-lines 1)
     (buffer-disable-undo)
     (set-visited-file-name nil t) ; disable autosaves and save questions
