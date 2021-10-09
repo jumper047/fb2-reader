@@ -188,45 +188,29 @@
   )
 
 
-(defun fb2-reader--parse-image (book attributes tags)
-  "Parse and insert image from BOOK described with ATTRIBUTES.
-
- Append TAGS to inserted string."
-
-  (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
-	      (binary (fb2-reader--find-binary book id))
-	      (imgdata (fb2-reader--extract-image-data binary))
-	      (data (car imgdata))
-	      (type (cdr imgdata))
-	      (img-raw (fb2-reader--create-image data type))
-	      (size-raw (image-size img-raw 't))
-	      (img-adj (fb2-reader--create-image data type
-						 :max-width 400
-						 :max-height 400))
-	      (width-ch (car (image-size img-adj)))
-	      (prefix-num (round (/ (- fill-column width-ch) 2)))
-	      (prefix-str (string-join (make-list prefix-num " ")))
-	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
-				    'fb2-reader-image-params size-raw)))
-    (insert prefix-str)
-    (insert-image img-adj fill-str)
-    (insert "\n\n")
-    ))
 
 (defun fb2-reader--pickle-image (book attributes tags)
   "Save all image-related info from BOOK ATTRIBUTES and TAGS to text property.
 
 It should be rendered when propertized text will be inserted into buffer."
-  (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
-	      (binary (fb2-reader--find-binary book id))
-	      (type-str (alist-get 'content-type (cl-second binary)))
-	      (data-str (cl-third binary)))
+  (when-let* ((imgdata (fb2-reader--extract-image-data book attributes tags))
+	      (type-str (cl-first imgdata))
+	      (data-str (cl-second imgdata))
+	      (tags (cl-third imgdata)))
     (insert (propertize " "
 			'fb2-reader-image-type type-str
 			'fb2-reader-image-data data-str
 			'fb2-reader-tags tags))
 
     ))
+
+(defun fb2-reader--extract-image-data (book attributes tags)
+  (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
+	      (binary (fb2-reader--find-binary book id))
+	      (type-str (alist-get 'content-type (cl-second binary)))
+	      (data-str (cl-third binary)))
+    (list type-str data-str tags))
+  )
 
 (defun fb2-reader--insert-image (data type tags)
   "Generate image from DATA of type TYPE and insert it at point.
@@ -281,15 +265,6 @@ to placeholder."
 
   (fb2-reader--find-subitem book 'binary 'id id))
 
-(defun fb2-reader--extract-image-data (item)
-  "Extract image data from xml ITEM."
-
-  (when-let* ((type-str (alist-get 'content-type (cl-second item)))
-	      (type-char (alist-get type-str
-				    '(("image/jpeg" . jpeg) ("image/png" . png))
-				    nil nil 'equal))
-	      (data (base64-decode-string (cl-third item))))
-    (cons data type-char)))
 
 ;; In case I'll need seamlessly switch image backend to imagemagick or something
 (defun fb2-reader--create-image (data type &rest props)
@@ -297,6 +272,8 @@ to placeholder."
 
   (apply 'create-image data type 't props))
 
+
+;; Links
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
   "Parse and insert link described with ATTRIBUTES from BOOK."
