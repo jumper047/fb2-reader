@@ -31,7 +31,7 @@
 (defvar fb2-reader-positions nil
   "pair of (filepath position)")
 
-(defvar fb2-reader-positions-init nil)
+(defvar fb2-reader-positions-initialized nil)
 
 (defvar-local fb2-reader-last-saved-position nil)
 
@@ -618,7 +618,7 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 			  fb2-reader-position-filename)))
     (if (f-exists-p pos-path)
 	(setq fb2-reader-positions (fb2-reader-load-file pos-path)))
-    (setq fb2-reader-positions-init 't)))
+    (setq fb2-reader-positions-initialized 't)))
 
 (defun fb2-reader-save-pos (filename pos)
   "Save position POS to FILENAME."
