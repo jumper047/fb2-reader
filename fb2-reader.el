@@ -597,7 +597,7 @@ Replace already added data if presented."
   "Read file with saved positions and return alist"
 
   (fb2-reader-load-settings 'fb2-reader-load-file
-			    'fb2-reader-position-filename))
+			    fb2-reader-position-filename))
 
 (defun fb2-reader-save-pos (&optional buffer)
   "Save current position in BUFFER."
