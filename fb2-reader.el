@@ -568,12 +568,19 @@ Replace already added data if presented."
 	 (buffer-local-value 'fb2-reader-file-name buffer) 't)
     (let ((inhibit-null-byte-detection t))
       (with-current-buffer buffer
+  (setq buffer-read-only 't)
+  (set-buffer-modified-p nil)
+	(setq buffer-read-only nil)
 	(erase-buffer)
+	(set-buffer-file-coding-system 'utf-8)
 	(insert (fb2-reader-get-cache fb2-reader-file-name))
 	(if fb2-reader-show-images
 	    (fb2-reader-restore-images))
 	(if fb2-reader-restore-position
-	    (fb2-reader-restore-pos))))))
+	    (fb2-reader-restore-pos))
+	(fb2-reader-imenu-setup)
+	(setq buffer-read-only nil)
+	(set-buffer-modified-p nil)))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
@@ -702,15 +709,6 @@ Book name should be the same as archive except .zip extension."
 ;;   (let ((map (make-sparse-keymap))))
 ;;   )
 
-(defun fb2-reader--finish-preparations ()
-  (fb2-reader-restore-buffer)
-  (setq truncate-lines 1)
-  (buffer-disable-undo)
-  (set-visited-file-name nil t) ; disable autosaves and save questions
-  (fb2-reader-imenu-setup)
-  (setq buffer-read-only 't)
-  (set-buffer-modified-p nil))
-
  
 (define-derived-mode fb2-reader-mode special-mode "FB2"
   "Major mode for reading FB2 books
@@ -718,18 +716,23 @@ Book name should be the same as archive except .zip extension."
 
 
   (setq fb2-reader-file-name buffer-file-name
-	buffer-read-only nil)
+	buffer-read-only nil
+	truncate-lines 1)
+  (buffer-disable-undo)
+  (set-visited-file-name nil t) ; disable autosaves and save questions
   (add-hook 'kill-buffer-hook 'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
-  ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
+  (add-hook 'kill-emacs-hook 'fb2-reader-save-all-pos)
   (fb2-reader-ensure-settingsdir)
-  (let ((book (if (equal "zip" (f-ext (buffer-file-name)))
-		  (fb2-reader-read-fb2-zip (buffer-file-name))
-		(fb2-reader-read-fb2 (buffer-file-name))))
-	(bufname (buffer-name)))
+  (erase-buffer)
+  (let ((bufname (buffer-name))
+	book)
     ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
-    (if (fb2-reader-cache-avail-p buffer-file-name 't)
-	(fb2-reader--finish-preparations)
+    (if (fb2-reader-cache-avail-p fb2-reader-file-name 't)
+	(fb2-reader-restore-buffer)
+      (setq book (if (equal "zip" (f-ext fb2-reader-file-name))
+		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
+		   (fb2-reader-read-fb2 fb2-reader-file-name)))
       (async-start
        `(lambda ()
 	  ,(async-inject-variables "\\`\\(fb2-reader\\)-")
@@ -745,7 +748,7 @@ Book name should be the same as archive except .zip extension."
 	   ;; loses hash at it's beginning.
 	   (fb2-reader-add-to-cache fb2-reader-file-name
 				    (read (concat "#" result)))
-	   (fb2-reader--finish-preparations)))))))
+	   (fb2-reader-restore-buffer)))))))
 
 ;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
 
