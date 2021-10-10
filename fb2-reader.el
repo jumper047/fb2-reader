@@ -56,11 +56,6 @@
 
 (defvar fb2-reader--cache-initialized nil)
 
-(defvar fb2-reader-positions nil
-  "pair of (filepath position)")
-
-(defvar fb2-reader--positions-initialized nil)
-
 (defvar-local fb2-reader-last-saved-position nil)
 
 (defvar-local fb2-reader-file-name nil
@@ -465,15 +460,15 @@ if these parameters are set."
   (unless (f-exists-p fb2-reader-settings-dir)
     (make-directory fb2-reader-settings-dir)))
 
-(defun fb2-reader-load-settings (varname loadfn filename)
-  "Open .el file from settings with function LOADFN and save result to VARNAME.
+(defun fb2-reader-load-settings (loadfn filename)
+  "Open .el file from settings with function LOADFN.
 
 FILENAME located in settings directory. Returns nil if file not found.
 LOADFN should receive only one argument - full path to file."
   (let ((fullpath (f-join fb2-reader-settings-dir
 			  filename)))
     (if (f-exists-p fullpath)
-	(set varname (funcall loadfn fullpath)))))
+	(funcall loadfn fullpath))))
 
 (defun fb2-reader-load-file (file)
   "Load text from FILE as elisp."
@@ -598,14 +593,11 @@ Replace already added data if presented."
     (format "%s%s.el" fname randstr)))
 
 
-(defun fb2-reader-init-positions ()
-  "Create dir if necessary, load positions file."
+(defun fb2-reader-positions ()
+  "Read file with saved positions and return alist"
 
-  (unless fb2-reader--positions-initialized
-    (fb2-reader-load-settings 'fb2-reader-positions
-			      'fb2-reader-load-file
-			      fb2-reader-position-filename)
-    (setq fb2-reader--positions-initialized 't)))
+  (fb2-reader-load-settings 'fb2-reader-load-file
+			    'fb2-reader-position-filename))
 
 (defun fb2-reader-save-pos (&optional buffer)
   "Save current position in BUFFER."
@@ -614,11 +606,10 @@ Replace already added data if presented."
   (let ((pos-path (f-join fb2-reader-settings-dir
 			  fb2-reader-position-filename))
 	(filename (buffer-local-value 'fb2-reader-file-name buffer)))
-    (setq fb2-reader-positions
-	  (cons (list fb2-reader-file-name (point))
-		(assoc-delete-all filename fb2-reader-positions)))
     (with-temp-file pos-path
-      (insert (prin1-to-string fb2-reader-positions)))))
+      (insert (prin1-to-string
+	       (cons (list fb2-reader-file-name (point))
+		     (assoc-delete-all filename (fb2-reader-positions))))))))
 
 (defun fb2-reader-save-all-pos ()
   "Save positions in all fb2-reader buffers."
@@ -632,7 +623,7 @@ Replace already added data if presented."
 
   (or buffer (setq buffer (current-buffer)))
   (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
-	      (pos (car (alist-get filename fb2-reader-positions nil nil 'equal))))
+	      (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
     (with-current-buffer buffer (goto-char pos))))
 
 
@@ -734,13 +725,12 @@ Book name should be the same as archive except .zip extension."
   (add-hook 'kill-buffer-hook 'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
+  (fb2-reader-ensure-settingsdir)
   (fb2-reader-init-cache)
-  (fb2-reader-init-positions)
   (let ((book (if (equal "zip" (f-ext (buffer-file-name)))
 		  (fb2-reader-read-fb2-zip (buffer-file-name))
 		(fb2-reader-read-fb2 (buffer-file-name))))
-	(bufname (buffer-name))
-	)
+	(bufname (buffer-name)))
     ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
     (if (fb2-reader-cache-avail-p buffer-file-name 't)
 	(fb2-reader--finish-preparations)
