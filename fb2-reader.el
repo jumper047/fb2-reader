@@ -51,11 +51,6 @@
 (defvar fb2-reader-index-filename "index.el")
 (defvar fb2-reader-position-filename "positions.el")
 
-(defvar fb2-reader-cache-index nil
-  "Contains alist (filename modification-time cache-filename)")
-
-(defvar fb2-reader--cache-initialized nil)
-
 (defvar-local fb2-reader-last-saved-position nil)
 
 (defvar-local fb2-reader-file-name nil
@@ -482,25 +477,23 @@ LOADFN should receive only one argument - full path to file."
 
 ;; Caching
 
-(defun fb2-reader-init-cache ()
-  "Create cache dir if necessary, load index file."
-  
-  (unless fb2-reader--cache-initialized
-    (fb2-reader-load-settings 'fb2-reader-cache-index
-			      'fb2-reader-load-file
-			      fb2-reader-index-filename)
-    (setq fb2-reader--cache-initialized 't)))
+(defun fb2-reader-cache-index ()
+  "Read cache index."
+
+  (fb2-reader-load-settings 'fb2-reader-load-file
+			    fb2-reader-index-filename))
 
 
 
-(defun fb2-reader-save-cache-index (file)
-  "Serialize current cache index and save it to FILE."
+
+(defun fb2-reader-save-cache-index (file index)
+  "Serialize given cache INDEX and save it to FILE."
   
   (with-temp-file file
         (set-buffer-file-coding-system 'utf-8)
 	(insert ";; fb2-reader.el -- read fb2 books  ")
 	(insert "file contains cache index, don't edit.\n")
-	(insert (prin1-to-string fb2-reader-cache-index))
+	(insert (prin1-to-string index))
 	(insert "\n")
     ))
 
@@ -511,7 +504,7 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
   
   (when (not fb2-reader--cache-initialized)
     (error "Cache index not initialized"))
-  (when-let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
+  (when-let ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal)))
     (if actual-only
 	(time-equal-p (car idx-entry)
 		      (file-attribute-modification-time
@@ -522,7 +515,7 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 (defun fb2-reader-get-cache (file)
   "Load cache for FILE if it exists."
 
-  (let ((cache-file (cl-second (alist-get file fb2-reader-cache-index nil nil 'equal))))
+  (let ((cache-file (cl-second (alist-get file (fb2-reader-cache-index) nil nil 'equal))))
     (if (and cache-file (f-exists-p cache-file))
 	(with-temp-buffer
 	  (insert-file-contents cache-file)
@@ -537,7 +530,8 @@ Replace already added data if presented."
   (fb2-reader-remove-from-cache filename)
   (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
 	(cache-filename (f-join fb2-reader-settings-dir
-				(fb2-reader-gen-cache-file-name filename))))
+				(fb2-reader-gen-cache-file-name filename)))
+	(index (fb2-reader-cache-index)))
     (with-temp-file cache-filename
       (set-buffer-file-coding-system 'utf-8)
       (insert ";; fb2-reader.el -- read fb2 books  ")
@@ -549,19 +543,22 @@ Replace already added data if presented."
     (push (list fb2-reader-file-name
 		(file-attribute-modification-time
 		 (file-attributes fb2-reader-file-name))
- 		cache-filename) fb2-reader-cache-index)
-    (fb2-reader-save-cache-index idx-filename)))
+ 		cache-filename)
+	  index)
+    (fb2-reader-save-cache-index idx-filename index)))
 
 
 (defun fb2-reader-remove-from-cache (filename)
   "Remove FILENAME from cache."
 
   (when-let ((cache-file (cl-second
-			  (alist-get filename fb2-reader-cache-index nil nil 'equal))))
+			  (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
+	     (index (fb2-reader-cache-index)))
     (f-delete cache-file)
-    (remove filename fb2-reader-cache-index)
+    (remove filename index)
     (fb2-reader-save-cache-index
-      (f-join fb2-reader-settings-dir fb2-reader-index-filename))))
+     (f-join fb2-reader-settings-dir fb2-reader-index-filename)
+     index)))
 
 (defun fb2-reader-restore-buffer (&optional buffer)
   "Restore BUFFER from cache. Restore current if arg missed."
@@ -726,7 +723,6 @@ Book name should be the same as archive except .zip extension."
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
   (fb2-reader-ensure-settingsdir)
-  (fb2-reader-init-cache)
   (let ((book (if (equal "zip" (f-ext (buffer-file-name)))
 		  (fb2-reader-read-fb2-zip (buffer-file-name))
 		(fb2-reader-read-fb2 (buffer-file-name))))
