@@ -577,7 +577,8 @@ Replace already added data if presented."
 	(if fb2-reader-show-images
 	    (fb2-reader-restore-images))
 	(if fb2-reader-restore-position
-	    (fb2-reader-restore-pos))
+	    (fb2-reader-restore-pos)
+	  (goto-char (point-min)))
 	(fb2-reader-imenu-setup)
 	(setq buffer-read-only nil)
 	(set-buffer-modified-p nil)))))
