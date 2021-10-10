@@ -15,8 +15,37 @@
 ;; TODO: cleanup comments
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
-  ""
-  :type 'string
+  "Path to directory with cached books, saved places etc."
+  :type 'directory
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-title-in-headerline t
+  "Show current chapter's title in headerline."
+  :type 'boolean
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-restore-position t
+  "Restore last viewed position on book's opening."
+  :type 'boolean
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-page-width 120
+  "Width of the rendered text."
+  :type 'integer
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-show-images 't
+  "Show images."
+  :type 'boolean)
+
+(defcustom fb2-reader-image-max-width 400
+  "Maximum width of the displayed image."
+  :type 'integer
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-image-max-height 400
+  "Maximum height of the displayed image."
+  :type 'integer
   :group 'fb2-reader)
 
 (defvar fb2-reader-index-filename "index.el")
@@ -30,18 +59,16 @@
 (defvar fb2-reader-positions nil
   "pair of (filepath position)")
 
-(defvar fb2-reader-positions-initialized nil)
+(defvar fb2-reader--positions-initialized nil)
 
 (defvar-local fb2-reader-last-saved-position nil)
 
 (defvar-local fb2-reader-file-name nil
-  "File's file name")
+  "Book's filename.")
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
-		"><> "
-		(fb2-reader-current-chapter)
-		" <><")))
+		(fb2-reader-current-chapter))))
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   "Recursively parse ITEM (part of the BOOK) and insert it into the buffer."
@@ -239,7 +266,7 @@ to placeholder."
     ))
 
 (defun fb2-reader-restore-images (&optional buffer)
-  "Find all images pickled in buffer and restore them"
+  "Find all images pickled in BUFFER and restore them."
 
   (interactive)
   (or buffer (setq buffer (current-buffer)))
@@ -431,18 +458,22 @@ if these parameters are set."
 
   (setf header-line-format 'fb2-reader-header-line-format))
 
-;; Caching
+;; Reading from settings
 
-(defun fb2-reader-init-cache ()
-  "Create cache dir if necessary, load index file."
-  
+(defun fb2-reader-ensure-settingsdir ()
+  "Create settings directory if necessary."
   (unless (f-exists-p fb2-reader-settings-dir)
-    (make-directory fb2-reader-settings-dir))
-  (let ((idx-path (f-join fb2-reader-settings-dir
-			  fb2-reader-index-filename)))
-    (if (f-exists-p idx-path)
-	(setq fb2-reader-cache-index (fb2-reader-load-file idx-path))))
-  (setq fb2-reader--cache-initialized 't))
+    (make-directory fb2-reader-settings-dir)))
+
+(defun fb2-reader-load-settings (varname loadfn filename)
+  "Open .el file from settings with function LOADFN and save result to VARNAME.
+
+FILENAME located in settings directory. Returns nil if file not found.
+LOADFN should receive only one argument - full path to file."
+  (let ((fullpath (f-join fb2-reader-settings-dir
+			  filename)))
+    (if (f-exists-p fullpath)
+	(set varname (funcall loadfn fullpath)))))
 
 (defun fb2-reader-load-file (file)
   "Load text from FILE as elisp."
@@ -452,6 +483,20 @@ if these parameters are set."
 	(insert-file-contents file)
 	(goto-char (point-min))
 	(read (current-buffer)))))
+
+
+;; Caching
+
+(defun fb2-reader-init-cache ()
+  "Create cache dir if necessary, load index file."
+  
+  (unless fb2-reader--cache-initialized
+    (fb2-reader-load-settings 'fb2-reader-cache-index
+			      'fb2-reader-load-file
+			      fb2-reader-index-filename)
+    (setq fb2-reader--cache-initialized 't)))
+
+
 
 (defun fb2-reader-save-cache-index (file)
   "Serialize current cache index and save it to FILE."
@@ -470,7 +515,7 @@ if these parameters are set."
 If ACTUAL-ONLY return 't if cache is existed and actual."
   
   (when (not fb2-reader--cache-initialized)
-    (error "Cache index not read"))
+    (error "Cache index not initialized"))
   (when-let ((idx-entry (alist-get file fb2-reader-cache-index nil nil 'equal)))
     (if actual-only
 	(time-equal-p (car idx-entry)
@@ -489,34 +534,37 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 	  (goto-char (point-min))
 	  (read (current-buffer))))))
 
-(defun fb2-reader-cache-buffer (&optional buffer)
-  "Save BUFFER to cache. Save current if buffer arg missed."
+(defun fb2-reader-add-to-cache (filename data)
+  "Add to cache rendered DATA for FILENAME.
 
-  (or buffer (setq buffer (current-buffer)))
-  (fb2-reader-remove-from-cache fb2-reader-file-name)
-  (with-current-buffer buffer
-    (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
-	  (cache-filename (f-join fb2-reader-settings-dir
-				  (fb2-reader-gen-cache-file-name fb2-reader-file-name)))
-	  (book-content (buffer-substring (point-min) (point-max))))
-      (with-temp-file cache-filename
-	(set-buffer-file-coding-system 'utf-8)
-	(insert ";; fb2-reader.el -- read fb2 books  ")
-	(insert "file contains fb2-reader book cache, don't edit.\n")
-	(insert "\n"))
-      (push (list fb2-reader-file-name
-		  (file-attribute-modification-time
-		   (file-attributes fb2-reader-file-name))
-		  cache-filename) fb2-reader-cache-index)
-      (fb2-reader-save-cache-index idx-filename))))
+Replace already added data if presented."
 
-(defun fb2-reader-remove-from-cache (file)
-  "Remove FILE from cache."
+  (fb2-reader-remove-from-cache filename)
+  (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
+	(cache-filename (f-join fb2-reader-settings-dir
+				(fb2-reader-gen-cache-file-name filename))))
+    (with-temp-file cache-filename
+      (set-buffer-file-coding-system 'utf-8)
+      (insert ";; fb2-reader.el -- read fb2 books  ")
+      (insert "file contains fb2-reader book cache, don't edit.\n")
+      (insert "\n")
+      (insert (prin1-to-string data))
+      )
+    
+    (push (list fb2-reader-file-name
+		(file-attribute-modification-time
+		 (file-attributes fb2-reader-file-name))
+ 		cache-filename) fb2-reader-cache-index)
+    (fb2-reader-save-cache-index idx-filename)))
+
+
+(defun fb2-reader-remove-from-cache (filename)
+  "Remove FILENAME from cache."
 
   (when-let ((cache-file (cl-second
-			  (alist-get file fb2-reader-cache-index nil nil 'equal))))
+			  (alist-get filename fb2-reader-cache-index nil nil 'equal))))
     (f-delete cache-file)
-    (remove file fb2-reader-cache-index)
+    (remove filename fb2-reader-cache-index)
     (fb2-reader-save-cache-index
       (f-join fb2-reader-settings-dir fb2-reader-index-filename))))
 
@@ -526,11 +574,14 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
   (or buffer (setq buffer (current-buffer)))
   (when (fb2-reader-cache-avail-p
 	 (buffer-local-value 'fb2-reader-file-name buffer) 't)
-  (let ((inhibit-null-byte-detection t))
-  (with-current-buffer buffer
-    (let ((book-cache (fb2-reader-get-cache fb2-reader-file-name)))
-      (erase-buffer)
-      (insert (cl-fourth book-cache)))))))
+    (let ((inhibit-null-byte-detection t))
+      (with-current-buffer buffer
+	(erase-buffer)
+	(insert (fb2-reader-get-cache fb2-reader-file-name))
+	(if fb2-reader-show-images
+	    (fb2-reader-restore-images))
+	(if fb2-reader-restore-position
+	    (fb2-reader-restore-pos))))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
@@ -550,46 +601,39 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 (defun fb2-reader-init-positions ()
   "Create dir if necessary, load positions file."
 
-  (unless (f-exists-p fb2-reader-settings-dir)
-    (make-directory fb2-reader-settings-dir))
-  (let ((pos-path (f-join fb2-reader-settings-dir
-			  fb2-reader-position-filename)))
-    (if (f-exists-p pos-path)
-	(setq fb2-reader-positions (fb2-reader-load-file pos-path)))
-    (setq fb2-reader-positions-initialized 't)))
+  (unless fb2-reader--positions-initialized
+    (fb2-reader-load-settings 'fb2-reader-positions
+			      'fb2-reader-load-file
+			      fb2-reader-position-filename)
+    (setq fb2-reader--positions-initialized 't)))
 
-(defun fb2-reader-save-pos (filename pos)
-  "Save position POS to FILENAME."
+(defun fb2-reader-save-pos (&optional buffer)
+  "Save current position in BUFFER."
 
+  (or buffer (setq buffer (current-buffer)))
   (let ((pos-path (f-join fb2-reader-settings-dir
-			  fb2-reader-position-filename)))
+			  fb2-reader-position-filename))
+	(filename (buffer-local-value 'fb2-reader-file-name buffer)))
     (setq fb2-reader-positions
-	  (cons (list filename pos) (assoc-delete-all filename fb2-reader-positions)))
+	  (cons (list fb2-reader-file-name (point))
+		(assoc-delete-all filename fb2-reader-positions)))
     (with-temp-file pos-path
       (insert (prin1-to-string fb2-reader-positions)))))
-
-(defun fb2-reader-save-curr-pos ()
-  "Save current position in curent buffer."
-
-  (if (eq major-mode 'fb2-reader-mode)
-      (fb2-reader-save-pos fb2-reader-file-name (point))
-    (warn "Not a fb2-reader-mode")))
 
 (defun fb2-reader-save-all-pos ()
   "Save positions in all fb2-reader buffers."
 
   (dolist (buffer (buffer-list))
-    (with-current-buffer buffer
-      (when (eq major-mode 'fb2-reader-mode)
-	(fb2-reader-save-curr-buffer)))))
+    (if (eq (buffer-local-value 'major-mode buffer) 'fb2-reader-mode)
+	(fb2-reader-save-pos buffer))))
 
 (defun fb2-reader-restore-pos (&optional buffer)
   "Restore position in current buffer or BUFFER."
 
   (or buffer (setq buffer (current-buffer)))
   (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
-	      (pos (alist-get filename fb2-reader-positions nil nil 'equal)))
-    (goto-char pos)))
+	      (pos (car (alist-get filename fb2-reader-positions nil nil 'equal))))
+    (with-current-buffer buffer (goto-char pos))))
 
 
 ;; TODO: Delete temp directory
@@ -608,6 +652,7 @@ Book name should be the same as archive except .zip extension."
 	(setq fb2-buffer (find-file-noselect (f-join tmpdir (f-base file))))
       (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
     (kill-buffer fb2-buffer)
+    (f-delete tmpdir 't)
     parsed
     ))
 
@@ -619,36 +664,7 @@ Book name should be the same as archive except .zip extension."
 
 
 (defun fb2-reader-read ()
-  (interactive)
-  (fb2-reader-init-cache)
-  (let (book title filename bodies rendered)
-    (setq book (if (equal "zip" (f-ext (buffer-file-name)))
-	(fb2-reader-read-fb2-zip (buffer-file-name))
-      (fb2-reader-read-fb2 (buffer-file-name))))
-    ;; (setq book (libxml-parse-xml-region (point-min) (point-max))
-    ;; 	  filename buffer-file-name)
-    ;; (kill-buffer)
-    (setq filename buffer-file-name)
-    (setq title (fb2-reader--get-title book))
-    (get-buffer-create title)
-    (switch-to-buffer title)
-    (setq buffer-file-name filename)
-    ;; Parse fb2
-    (with-temp-buffer
-      (fb2-reader-render book)
-      (setq rendered (buffer-substring (point-min) (point-max)))
-      )
-    (insert rendered)
-    ;; (fb2-reader-read-book book)
-    ;; (if (fb2-reader-cache-avail-p filename)
-    ;; 	(fb2-reader-restore-buffer)
 
-    ;;   (fb2-reader-cache-buffer))
-    (fb2-reader-imenu-setup)
-    (fb2-reader-set-up-header-line)
-    ))
-
-(defun fb2-reader-read-async ()
   (interactive)
   (fb2-reader-init-cache)
   (let (book title filename bodies rendered)
@@ -698,33 +714,52 @@ Book name should be the same as archive except .zip extension."
 ;;   (let ((map (make-sparse-keymap))))
 ;;   )
 
+(defun fb2-reader--finish-preparations ()
+  (fb2-reader-restore-buffer)
+  (setq truncate-lines 1)
+  (buffer-disable-undo)
+  (set-visited-file-name nil t) ; disable autosaves and save questions
+  (fb2-reader-imenu-setup)
+  (setq buffer-read-only 't)
+  (set-buffer-modified-p nil))
+
  
-(define-derived-mode fb2-reader-mode view-mode "FB2"
+(define-derived-mode fb2-reader-mode special-mode "FB2"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
-  (add-hook 'kill-buffer-hook 'fb2-reader-save-curr-pos nil t)
-  (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
-  (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
-  (let (book title filename bodies)
-    (fb2-reader-init-cache)
-    (fb2-reader-init-positions)
-    (setq buffer-read-only nil)
-    (setq book (if (equal "zip" (f-ext (buffer-file-name)))
-		   (fb2-reader-read-fb2-zip (buffer-file-name))
-		 (fb2-reader-read-fb2 (buffer-file-name)))
-	  fb2-reader-file-name (buffer-file-name))
-    (erase-buffer)
-    (rename-buffer (fb2-reader--get-title book))
-    (if (fb2-reader-cache-avail-p (buffer-file-name))
-	(fb2-reader-restore-buffer)
-      (fb2-reader-read-book book)
-      (fb2-reader-cache-buffer))
-    (setq truncate-lines 1)
-    (buffer-disable-undo)
-    (set-visited-file-name nil t) ; disable autosaves and save questions
-    (fb2-reader-imenu-setup)
-    (setq buffer-read-only 't)
-    (set-buffer-modified-p nil)))
+
+
+  (setq fb2-reader-file-name buffer-file-name
+	buffer-read-only nil)
+  (add-hook 'kill-buffer-hook 'fb2-reader-save-pos nil t)
+  ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
+  ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-all-pos)
+  (fb2-reader-init-cache)
+  (fb2-reader-init-positions)
+  (let ((book (if (equal "zip" (f-ext (buffer-file-name)))
+		  (fb2-reader-read-fb2-zip (buffer-file-name))
+		(fb2-reader-read-fb2 (buffer-file-name))))
+	(bufname (buffer-name))
+	)
+    ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
+    (if (fb2-reader-cache-avail-p buffer-file-name 't)
+	(fb2-reader--finish-preparations)
+      (async-start
+       `(lambda ()
+	  ,(async-inject-variables "\\`\\(fb2-reader\\)-")
+	  ,(async-inject-variables "book")
+	  (setq load-path (quote ,load-path))
+	  (require 'fb2-reader)
+	  (with-temp-buffer
+	    (fb2-reader-render (quote ,book))
+	    (prin1-to-string (buffer-substring (point-min) (point-max)))))
+       (lambda (result)
+	 (with-current-buffer bufname
+	   ;; For some reason propertized string returned from async process
+	   ;; loses hash at it's beginning.
+	   (fb2-reader-add-to-cache fb2-reader-file-name
+				    (read (concat "#" result)))
+	   (fb2-reader--finish-preparations)))))))
 
 ;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
 
