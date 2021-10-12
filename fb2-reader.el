@@ -475,6 +475,43 @@ LOADFN should receive only one argument - full path to file."
 	(read (current-buffer)))))
 
 
+;; Navigation
+
+(defun fb2-reader--jump-chapter (chapter)
+  (unless (eq chapter 0)	;do nothing if chapter is 0.
+    (let* ((fwd (> chapter 0))
+	   (obp (if fwd 'eobp 'bobp))
+	   (point-end (if fwd 'point-max 'point-min))
+	   (search-prop (if fwd 'next-single-property-change
+			  'previous-single-property-change))
+	   (step (if fwd 1 -1))
+	   found)
+      (message "chapter is %s" chapter)
+      (while (and  (not (eq 0 chapter)) (not (funcall obp)))
+	;; If we already inside title, skip it and go to next one
+	(if (eq chapter 0)
+	(message "chapter is %s" chapter))
+	(unless (plist-member (text-properties-at (point)) 'fb2-reader-title)
+	  (setq found 't))
+	(goto-char (or (funcall search-prop (point) 'fb2-reader-title)
+		       (funcall point-end)))
+	(if found (setq chapter (- chapter step)
+			found nil))))
+  (recenter 0)
+  ))
+
+(defun fb2-reader-forward-chapter (&optional n)
+  "Go N chapters forward."
+  (interactive "p")
+  (or n (setq n 1))
+  (fb2-reader--jump-chapter n))
+
+(defun fb2-reader-backward-chapter (&optional n)
+  "Go N chapters backward."
+  (interactive "p")
+  (or n (setq n -1))
+  (fb2-reader--jump-chapter n))
+
 ;; Caching
 
 (defun fb2-reader-cache-index ()
