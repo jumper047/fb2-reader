@@ -664,9 +664,9 @@ Replace already added data if presented."
   "Restore position in current buffer or BUFFER."
 
   (or buffer (setq buffer (current-buffer)))
-  (when-let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
+  (let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
 	      (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
-    (with-current-buffer buffer (goto-char pos))))
+    (with-current-buffer buffer (goto-char (or pos (point-min))))))
 
 
 ;; TODO: Delete temp directory
