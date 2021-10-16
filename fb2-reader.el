@@ -378,6 +378,7 @@ if these parameters are set."
 (defun fb2-reader-render (book)
   "Render BOOK and insert it into the current buffer."
 
+  (setq-local fill-column fb2-reader-page-width)
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body)))
 
