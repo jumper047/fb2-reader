@@ -645,10 +645,11 @@ Replace already added data if presented."
   (or buffer (setq buffer (current-buffer)))
   (let ((pos-path (f-join fb2-reader-settings-dir
 			  fb2-reader-position-filename))
-	(filename (buffer-local-value 'fb2-reader-file-name buffer)))
+	(filename (buffer-local-value 'fb2-reader-file-name buffer))
+	(pos-entry (list fb2-reader-file-name (point))))
     (with-temp-file pos-path
       (insert (prin1-to-string
-	       (cons (list fb2-reader-file-name (point))
+	       (cons pos-entry
 		     (assoc-delete-all filename (fb2-reader-positions))))))))
 
 (defun fb2-reader-save-all-pos ()
