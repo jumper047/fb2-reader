@@ -678,13 +678,13 @@ Book name should be the same as archive except .zip extension."
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
 			 'directory) (f-path-separator)))
-	fb2-buffer
 	parsed)
     (call-process "unzip" nil nil nil "-d" tmpdir file)
-    (with-current-buffer
-	(setq fb2-buffer (find-file-noselect (f-join tmpdir (f-base file))))
+
+    (with-temp-buffer
+      (insert-file-contents (f-join tmpdir (f-base file)))
       (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
-    (kill-buffer fb2-buffer)
+
     (f-delete tmpdir 't)
     parsed
     ))
