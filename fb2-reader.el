@@ -788,6 +788,6 @@ Book name should be the same as archive except .zip extension."
 				    (read (concat "#" result)))
 	   (fb2-reader-restore-buffer)))))))
 
-;; (add-to-list 'auto-mode-alist '("\\.fb2$" . fb2-reader-mode))
+(add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
 
 (provide 'fb2-reader) 
