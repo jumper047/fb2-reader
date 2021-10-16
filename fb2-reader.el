@@ -690,7 +690,8 @@ Book name should be the same as archive except .zip extension."
 (defun fb2-reader-read-fb2 (file)
   "Read book from .fb2 FILE."
   
-  (with-current-buffer (find-file-noselect file)
+  (with-temp-buffer
+    (insert-file-contents file)
     (libxml-parse-xml-region (point-min) (point-max))))
 
 
