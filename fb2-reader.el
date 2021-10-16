@@ -780,16 +780,22 @@ Book name should be the same as archive except .zip extension."
 	  (setq load-path (quote ,load-path))
 	  (require 'fb2-reader)
 	  (with-temp-buffer
-	    (fb2-reader-render (quote ,book))
-	    (prin1-to-string (buffer-substring (point-min) (point-max)))))
+		    (fb2-reader-render (quote ,book))
+		    (prin1-to-string (buffer-substring (point-min) (point-max))))
+	  )
        (lambda (result)
 	 (with-current-buffer bufname
 	   ;; For some reason propertized string returned from async process
 	   ;; loses hash at it's beginning.
 	   (fb2-reader-add-to-cache fb2-reader-file-name
 				    (read (concat "#" result)))
-	   (fb2-reader-restore-buffer)))))))
+	   (fb2-reader-restore-buffer)))))
+    (fb2-reader-imenu-setup)
+    (if fb2-reader-title-in-headerline
+	(fb2-reader-set-up-header-line))))
 
-(add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
+;; (add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
 
-(provide 'fb2-reader) 
+(provide 'fb2-reader)
+
+;;; 'fb2-reader.el ends here
