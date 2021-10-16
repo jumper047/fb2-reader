@@ -740,20 +740,21 @@ Book name should be the same as archive except .zip extension."
     ;; (fb2-reader-set-up-header-line)
     ))
 
-
-
-
-;; (defvar fb2-reader-mode-map
-;;   (let ((map (make-sparse-keymap))))
-;;   )
+(defvar fb2-reader-mode-map
+  (let ((map (make-sparse-keymap)))
+  (define-key map (kbd "n") 'fb2-reader-forward-chapter)
+  (define-key map (kbd "]") 'fb2-reader-forward-chapter)
+  (define-key map (kbd "p") 'fb2-reader-backward-chapter)
+  (define-key map (kbd "[") 'fb2-reader-backward-chapter)
+  map)
+  )
 
  
 (define-derived-mode fb2-reader-mode special-mode "FB2"
   "Major mode for reading FB2 books
 \\{fb2-reader-mode-map}"
 
-
-  (setq fb2-reader-file-name buffer-file-name
+  (setq fb2-reader-file-name (buffer-file-name)
 	buffer-read-only nil
 	truncate-lines 1)
   (buffer-disable-undo)
