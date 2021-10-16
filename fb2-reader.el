@@ -539,8 +539,6 @@ LOADFN should receive only one argument - full path to file."
 
 If ACTUAL-ONLY return 't if cache is existed and actual."
   
-  (when (not fb2-reader--cache-initialized)
-    (error "Cache index not initialized"))
   (when-let ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal)))
     (if actual-only
 	(time-equal-p (car idx-entry)
