@@ -606,18 +606,17 @@ Replace already added data if presented."
       (with-current-buffer buffer
   (setq buffer-read-only 't)
   (set-buffer-modified-p nil)
-	(setq buffer-read-only nil)
-	(erase-buffer)
-	(set-buffer-file-coding-system 'utf-8)
-	(insert (fb2-reader-get-cache fb2-reader-file-name))
-	(if fb2-reader-show-images
-	    (fb2-reader-restore-images))
-	(if fb2-reader-restore-position
-	    (fb2-reader-restore-pos)
-	  (goto-char (point-min)))
-	(fb2-reader-imenu-setup)
-	(setq buffer-read-only nil)
-	(set-buffer-modified-p nil)))))
+  (setq buffer-read-only nil)
+  (erase-buffer)
+  (set-buffer-file-coding-system 'utf-8)
+  (insert (fb2-reader-get-cache fb2-reader-file-name))
+  (if fb2-reader-show-images
+      (fb2-reader-restore-images))
+  (if fb2-reader-restore-position
+      (fb2-reader-restore-pos)
+    (goto-char (point-min)))
+  (setq buffer-read-only nil)
+  (set-buffer-modified-p nil)))))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
