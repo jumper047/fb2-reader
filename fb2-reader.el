@@ -382,6 +382,25 @@ if these parameters are set."
   (dolist (body (fb2-reader--get-bodies book))
     (fb2-reader-parse book body)))
 
+(defun fb2-reader-render-async (book callback)
+  "Render BOOK asynchronously, launch CALLBACK with result."
+  (async-start
+   `(lambda ()
+      ,(async-inject-variables "\\`\\(fb2-reader\\)-")
+      ,(async-inject-variables "book")
+      (setq load-path (quote ,load-path))
+      (require 'fb2-reader)
+      (with-temp-buffer
+	(fb2-reader-render (quote ,book))
+	(prin1-to-string (buffer-substring (point-min) (point-max))))
+      )
+   callback))
+
+;; Utilities
+(defun fb2-reader-assert-mode-p ()
+  "Check is current buffer is suitable to run command and throw error otherwise."
+  (unless fb2-reader-file-name
+    (error "Command suitable only for fb2-reader buffers.")))
 
 ;; Imenu support
 
@@ -618,6 +637,28 @@ Replace already added data if presented."
   (setq buffer-read-only nil)
   (set-buffer-modified-p nil)))))
 
+(defun fb2-reader--refresh (&optional buffer)
+  (setq buffer (or buffer (current-buffer)))
+  (let ((book (if (equal "zip" (f-ext fb2-reader-file-name))
+		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
+		(fb2-reader-read-fb2 fb2-reader-file-name))))
+    (fb2-reader-save-pos buffer)
+    (fb2-reader-render-async book
+			     (lambda (result)
+			       (with-current-buffer buffer
+				 (fb2-reader-add-to-cache fb2-reader-file-name
+							  (read (concat "#" result)))
+				 (fb2-reader-restore-buffer)
+				 (message "Document %s reloaded" fb2-reader-file-name))))))
+
+(defun fb2-reader-refresh ()
+  "Reread current book from disk, render and display it."
+  (interactive)
+  (when (y-or-n-p "During refresh current position may change. Proceed? ")
+    (message "Refreshing book asynchronously.")
+    (fb2-reader-assert-mode-p)
+    (fb2-reader--refresh)))
+
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
 
@@ -746,6 +787,7 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "]") 'fb2-reader-forward-chapter)
   (define-key map (kbd "p") 'fb2-reader-backward-chapter)
   (define-key map (kbd "[") 'fb2-reader-backward-chapter)
+  (define-key map (kbd "g") 'fb2-reader-refresh)
   map)
   )
 
@@ -772,29 +814,18 @@ Book name should be the same as archive except .zip extension."
       (setq book (if (equal "zip" (f-ext fb2-reader-file-name))
 		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
 		   (fb2-reader-read-fb2 fb2-reader-file-name)))
-      (async-start
-       `(lambda ()
-	  ,(async-inject-variables "\\`\\(fb2-reader\\)-")
-	  ,(async-inject-variables "book")
-	  (setq load-path (quote ,load-path))
-	  (require 'fb2-reader)
-	  (with-temp-buffer
-		    (fb2-reader-render (quote ,book))
-		    (prin1-to-string (buffer-substring (point-min) (point-max))))
-	  )
-       (lambda (result)
-	 (with-current-buffer bufname
-	   ;; For some reason propertized string returned from async process
-	   ;; loses hash at it's beginning.
-	   (fb2-reader-add-to-cache fb2-reader-file-name
-				    (read (concat "#" result)))
-	   (fb2-reader-restore-buffer)))))
+      (fb2-reader-render-async book
+			       (lambda (result)
+				 (with-current-buffer bufname
+				   ;; For some reason propertized string returned from async process
+				   ;; loses hash at it's beginning.
+				   (fb2-reader-add-to-cache fb2-reader-file-name
+							    (read (concat "#" result)))
+				   (fb2-reader-restore-buffer)))))
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-set-up-header-line))))
 
-;; (add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
-
 (provide 'fb2-reader)
 
-;;; 'fb2-reader.el ends here
+;;; fb2-reader.el ends here
