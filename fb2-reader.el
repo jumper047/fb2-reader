@@ -814,6 +814,9 @@ Book name should be the same as archive except .zip extension."
       (setq book (if (equal "zip" (f-ext fb2-reader-file-name))
 		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
 		   (fb2-reader-read-fb2 fb2-reader-file-name)))
+      (setq-local cursor-type nil)
+      (insert (propertize "Rendering in process, please wait." 'face (list (cons :height (list 1.2)))))
+      (fill-region (point-min) (point-max) 'center)
       (fb2-reader-render-async book
 			       (lambda (result)
 				 (with-current-buffer bufname
@@ -821,7 +824,8 @@ Book name should be the same as archive except .zip extension."
 				   ;; loses hash at it's beginning.
 				   (fb2-reader-add-to-cache fb2-reader-file-name
 							    (read (concat "#" result)))
-				   (fb2-reader-restore-buffer)))))
+				   (fb2-reader-restore-buffer)
+				   (kill-local-variable 'cursor-type)))))
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-set-up-header-line))))
