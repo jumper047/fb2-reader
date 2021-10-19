@@ -497,40 +497,62 @@ LOADFN should receive only one argument - full path to file."
 
 ;; Navigation
 
-(defun fb2-reader--jump-chapter (chapter)
-  (unless (eq chapter 0)	;do nothing if chapter is 0.
-    (let* ((fwd (> chapter 0))
+(defun fb2-reader--jump-property (number propname)
+  (unless (eq number 0)	;do nothing if chapter is 0.
+    (let* ((fwd (> number 0))
 	   (obp (if fwd 'eobp 'bobp))
 	   (point-end (if fwd 'point-max 'point-min))
 	   (search-prop (if fwd 'next-single-property-change
 			  'previous-single-property-change))
 	   (step (if fwd 1 -1))
 	   found)
-      (message "chapter is %s" chapter)
-      (while (and  (not (eq 0 chapter)) (not (funcall obp)))
+      ;; Add one to step in case moving backward and initial position
+      ;; not inside tag because first position in that case will be right
+      ;; after tag which is inconvinient.
+      (unless (plist-member (text-properties-at (point)) propname)
+	   (setq number (if (not fwd) (1- number) number)))
+      (while (and  (not (eq 0 number)) (not (funcall obp)))
 	;; If we already inside title, skip it and go to next one
-	(if (eq chapter 0)
-	(message "chapter is %s" chapter))
-	(unless (plist-member (text-properties-at (point)) 'fb2-reader-title)
+	(unless (plist-member (text-properties-at (point)) propname)
 	  (setq found 't))
-	(goto-char (or (funcall search-prop (point) 'fb2-reader-title)
+	(goto-char (or (funcall search-prop (point) propname)
 		       (funcall point-end)))
-	(if found (setq chapter (- chapter step)
-			found nil))))
-  (recenter 0)
-  ))
+	(if found (setq number (- number step)
+			found nil))))))
+
 
 (defun fb2-reader-forward-chapter (&optional n)
   "Go N chapters forward."
   (interactive "p")
-  (or n (setq n 1))
-  (fb2-reader--jump-chapter n))
+  (fb2-reader--jump-property n 'fb2-reader-title)
+  (recenter 0))
 
 (defun fb2-reader-backward-chapter (&optional n)
   "Go N chapters backward."
   (interactive "p")
-  (or n (setq n -1))
-  (fb2-reader--jump-chapter n))
+  (setq n (* n -1))
+  (fb2-reader--jump-property n 'fb2-reader-title)
+  (recenter 0))
+
+(defun fb2-reader--jump-link (n)
+  "Go N links forward."
+  (let (target)
+    (save-excursion
+      (fb2-reader--jump-property n 'fb2-reader-target)
+      (setq target (point)))
+    (if (and (>= target (window-start)) (<= target (window-end)))
+	(goto-char target))))
+
+(defun fb2-reader-forward-visible-link (&optional n)
+  "Go N visible links forward."
+  (interactive "p")
+  (fb2-reader--jump-link n))
+
+(defun fb2-reader-backward-visible-link (&optional n)
+  "Go N visible links backwarg."
+  (interactive "p")
+  (setq n (* n -1))
+  (fb2-reader--jump-link n))
 
 ;; Caching
 
@@ -783,9 +805,9 @@ Book name should be the same as archive except .zip extension."
 
 (defvar fb2-reader-mode-map
   (let ((map (make-sparse-keymap)))
-  (define-key map (kbd "n") 'fb2-reader-forward-chapter)
+  (define-key map (kbd "n") 'fb2-reader-forward-visible-link)
   (define-key map (kbd "]") 'fb2-reader-forward-chapter)
-  (define-key map (kbd "p") 'fb2-reader-backward-chapter)
+  (define-key map (kbd "p") 'fb2-reader-backward-visible-link)
   (define-key map (kbd "[") 'fb2-reader-backward-chapter)
   (define-key map (kbd "g") 'fb2-reader-refresh)
   map)
