@@ -56,6 +56,10 @@
 (defvar-local fb2-reader-file-name nil
   "Book's filename.")
 
+(defvar-local fb2-reader-link-pos nil)
+
+(defvar-local fb2-reader-link-target-pos nil)
+
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-current-chapter))))
@@ -328,7 +332,23 @@ to placeholder."
   (push-mark)
   (when-let* ((target-id (get-text-property (point) 'fb2-reader-target))
 	      (position (fb2-reader--get-target-pos target-id)))
-    (goto-char position)))
+    (setq fb2-reader-link-pos (point))
+    (goto-char position)
+    (setq fb2-reader-link-target-pos (point))))
+
+(defun fb2-reader-link-back ()
+  "Go to last used link's location"
+  (interactive)
+  (if fb2-reader-link-pos
+      (goto-char fb2-reader-link-pos)
+    (message "You don't follow any link in this buffer.")))
+
+(defun fb2-reader-link-forward ()
+  "Go to last used link's location"
+  (interactive)
+  (if fb2-reader-link-pos
+      (goto-char fb2-reader-link-target-pos)
+    (message "You don't follow any link in this buffer.")))
 
 (defvar fb2-reader-link-map
   (let ((map (make-sparse-keymap)))
@@ -809,6 +829,10 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "]") 'fb2-reader-forward-chapter)
   (define-key map (kbd "p") 'fb2-reader-backward-visible-link)
   (define-key map (kbd "[") 'fb2-reader-backward-chapter)
+  (define-key map (kbd "l") 'fb2-reader-link-back)
+  (define-key map (kbd "B") 'fb2-reader-link-back)
+  (define-key map (kbd "r") 'fb2-reader-link-forward)
+  (define-key map (kbd "N") 'fb2-reader-link-forward)
   (define-key map (kbd "g") 'fb2-reader-refresh)
   map)
   )
