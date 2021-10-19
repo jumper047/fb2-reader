@@ -637,7 +637,7 @@ Replace already added data if presented."
   (setq buffer-read-only nil)
   (set-buffer-modified-p nil)))))
 
-(defun fb2-reader--refresh (&optional buffer)
+(defun fb2-reader--refresh-buffer (&optional buffer)
   (setq buffer (or buffer (current-buffer)))
   (let ((book (if (equal "zip" (f-ext fb2-reader-file-name))
 		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
@@ -657,7 +657,7 @@ Replace already added data if presented."
   (when (y-or-n-p "During refresh current position may change. Proceed? ")
     (message "Refreshing book asynchronously.")
     (fb2-reader-assert-mode-p)
-    (fb2-reader--refresh)))
+    (fb2-reader--refresh-buffer)))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
   "Generate file name for FILEPATH."
