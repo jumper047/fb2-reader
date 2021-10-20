@@ -1,4 +1,49 @@
-;;; -*- lexical-binding: t; -*-
+;;; fb2-reader.el --- Read FB2 and FB2.ZIP documents -*- lexical-binding: t; -*-
+
+;; Copyright (c) 2021 Dmitriy Pshonko <jumper047@gmail.com>
+
+;; Author: Dmitriy Pshonko <jumper047@gmail.com>
+;; URL: https://github.com/jumper047/fb2-reader
+;; Keywords: multimedia, ebook, fb2
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0"))
+
+;; This file is NOT part of GNU Emacs.
+
+;;; License:
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; fb2-reader.el provides a major mode for reading FB2 books.
+;;
+;; Features:
+;; 
+;; - read .fb2 and .fb2.zip files
+;; - rich book formatting
+;; - internal links (select from keyboard, jumb back and forth)
+;; - navigaion (next/previous chapters, imenu support)
+;; - restoring last read position
+;;
+;; Coming soon:
+;; 
+;; - book info screen
+;; - displaying raw xml
+;; - integration with https://github.com/jumper047/librera-sync
+
+;;; Code:
 
 (require 'subr-x)
 (require 'cl-lib)
@@ -7,12 +52,6 @@
 (require 'f)
 (require 's)
 
-;; TODO: restore position
-;; TODO: imenu
-;; TODO: [] bindings for next-prev title
-;; TODO: metadata screen
-;; TODO: function to reload book
-;; TODO: cleanup comments
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
   "Path to directory with cached books, saved places etc."
@@ -48,24 +87,28 @@
   :type 'integer
   :group 'fb2-reader)
 
-(defvar fb2-reader-index-filename "index.el")
-(defvar fb2-reader-position-filename "positions.el")
+(defvar fb2-reader-index-filename "index.el"
+  "Filename for file containing meta information about cached books.")
 
-(defvar-local fb2-reader-last-saved-position nil)
+(defvar fb2-reader-position-filename "positions.el"
+  "Filename for file containing last positions in books.")
 
 (defvar-local fb2-reader-file-name nil
-  "Book's filename.")
+  "Book's filename (replaces buffer-file-name).")
 
-(defvar-local fb2-reader-link-pos nil)
+(defvar-local fb2-reader-link-pos nil
+  "Last used link's position.")
 
-(defvar-local fb2-reader-link-target-pos nil)
+(defvar-local fb2-reader-link-target-pos nil
+  "Last used link's target.")
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-current-chapter))))
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
-  "Recursively parse ITEM (part of the BOOK) and insert it into the buffer."
+  "Recursively parse ITEM and insert it into the buffer.
+BOOK is whole xml tree (it is needed in case)"
 
   (or face (setq face 'default))
   (or tags (setq tags '()))
@@ -117,7 +160,6 @@
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
 (defun fb2-reader--format-string (book body tags face curr-tag  alignment indent  &optional indent-first append-newline)
-  "Format BODY (part of the BOOK) into string and insert it."
 
   (or indent-first (setq indent-first 2))
   (or append-newline (setq append-newline 't))
@@ -140,7 +182,9 @@
     (fill-region point-start (point) alignment)))
 
 (defun fb2-reader--insert-newline-maybe ()
-  "Insert newline if there is no newline (except \"empty-line\" tag) inserted before."
+  "Insert newline if there is no newline inserted before.
+Exception for \"empty-line\" tag."
+
   (let (prev-empty-line-p)
     (save-excursion
       (backward-char)
@@ -183,7 +227,6 @@
 
 
 (defun fb2-reader--parse-cite (book body tags face current-tag)
-  "Parse and insert BODY (BOOK 's part) as cite."
 
   (let* ((indent 4)
 	 (fill-column-backup fill-column)
@@ -196,7 +239,6 @@
     (fb2-reader--insert-newline-maybe)))
 
 (defun fb2-reader--parse-poem (book body tags face current-tag)
-  "Parse and insert BODY (BOOK 's part) as poem."
 
   (dolist (subitem body)
     (let ((subtags (cons current-tag tags))
@@ -230,8 +272,7 @@ It should be rendered when propertized text will be inserted into buffer."
 	      (binary (fb2-reader--find-binary book id))
 	      (type-str (alist-get 'content-type (cl-second binary)))
 	      (data-str (cl-third binary)))
-    (list type-str data-str tags))
-  )
+    (list type-str data-str tags)))
 
 (defun fb2-reader--insert-image (data type tags)
   "Generate image from DATA of type TYPE and insert it at point.
@@ -337,14 +378,14 @@ to placeholder."
     (setq fb2-reader-link-target-pos (point))))
 
 (defun fb2-reader-link-back ()
-  "Go to last used link's location"
+  "Go to last used link's location."
   (interactive)
   (if fb2-reader-link-pos
       (goto-char fb2-reader-link-pos)
     (message "You don't follow any link in this buffer.")))
 
 (defun fb2-reader-link-forward ()
-  "Go to last used link's location"
+  "Go to last used link's location."
   (interactive)
   (if fb2-reader-link-pos
       (goto-char fb2-reader-link-target-pos)
@@ -420,7 +461,7 @@ if these parameters are set."
 (defun fb2-reader-assert-mode-p ()
   "Check is current buffer is suitable to run command and throw error otherwise."
   (unless fb2-reader-file-name
-    (error "Command suitable only for fb2-reader buffers.")))
+    (error "Command suitable only for fb2-reader buffers")))
 
 ;; Imenu support
 
@@ -751,7 +792,6 @@ Replace already added data if presented."
     (with-current-buffer buffer (goto-char (or pos (point-min))))))
 
 
-;; TODO: Delete temp directory
 (defun fb2-reader-read-fb2-zip (file)
   "Read book from fb2.zip FILE.
 
@@ -779,50 +819,6 @@ Book name should be the same as archive except .zip extension."
     (libxml-parse-xml-region (point-min) (point-max))))
 
 
-(defun fb2-reader-read ()
-
-  (interactive)
-  (fb2-reader-init-cache)
-  (let (book title filename bodies rendered)
-    ;; (setq book (if (equal "zip" (f-ext (buffer-file-name)))
-    ;; 	(fb2-reader-read-fb2-zip (buffer-file-name))
-    ;;   (fb2-reader-read-fb2 (buffer-file-name))))
-
-    (setq book (libxml-parse-xml-region (point-min) (point-max))
-	  filename buffer-file-name)
-    ;; (kill-buffer)
-    (setq filename buffer-file-name)
-    (setq title (fb2-reader--get-title book))
-    (get-buffer-create title)
-    (switch-to-buffer title)
-    (setq buffer-file-name filename)
-    ;; Parse fb2
-;; (push "~/Src/Linux/_my/fb2-reader" load-path)
-    (message "title is %s" title)
-    (async-start
-     `(lambda ()
-	,(async-inject-variables "\\`\\(fb2-reader\\)-")
-	,(async-inject-variables "book")
-	(setq load-path (quote ,load-path))
-	      ;; window-system (quote ,window-system))
-	(require 'fb2-reader)
-	(with-temp-buffer
-	  (fb2-reader-render (quote ,book))
-	  (prin1-to-string (buffer-substring (point-min) (point-max)))
-	  )
-	)
-     (lambda (result)
-       ;; (fb2-reader-cache-rendered (file rendered)
-       (setq fb2-reader-rendered-tmp result)
-       (with-current-buffer title
-       ;; For some reason propertized string returned from async process
-       ;; loses hash at it's beginning. 
-	 (insert (read (concat "#" fb2-reader-rendered-tmp)))
-	 (fb2-reader-restore-images))))
-    ;; (fb2-reader-imenu-setup)
-    ;; (fb2-reader-set-up-header-line)
-    ))
-
 (defvar fb2-reader-mode-map
   (let ((map (make-sparse-keymap)))
   (define-key map (kbd "n") 'fb2-reader-forward-visible-link)
@@ -839,7 +835,7 @@ Book name should be the same as archive except .zip extension."
 
  
 (define-derived-mode fb2-reader-mode special-mode "FB2"
-  "Major mode for reading FB2 books
+  "Major mode for reading FB2 books.
 \\{fb2-reader-mode-map}"
 
   (setq fb2-reader-file-name (buffer-file-name)
