@@ -87,6 +87,11 @@
   :type 'integer
   :group 'fb2-reader)
 
+(defcustom fb2-reader-title-height 1.4
+  "Height of the title's font."
+  :type 'float
+  :group 'fb2-reader)
+
 (defvar fb2-reader-index-filename "index.el"
   "Filename for file containing meta information about cached books.")
 
@@ -112,7 +117,8 @@ BOOK is whole xml tree (it is needed in case)"
 
   (or face (setq face 'default))
   (or tags (setq tags '()))
-  (or alignment (setq alignment 'left))
+  ;; (or alignment (setq alignment 'left))
+  (or alignment (setq alignment 'full))
   (or indent (setq indent 0))
   (if (stringp item)
 		 (insert (propertize (string-trim item)
@@ -205,19 +211,16 @@ Exception for \"empty-line\" tag."
 (defun fb2-reader--parse-title (book body tags face curr-tag)
   "Parse and insert BODY (BOOK 's part) as title."
 
-  (let* ((title-level (--count (equal it 'section) tags))
-	 (font-height (max 1.2 (- 1.8 (* title-level 0.2))))
-	 (title-width (round (/ fill-column font-height)))
-	 (title-face (cons (cons :height (list font-height)) face))
+  (let* ((title-fill-column (round (/ fb2-reader-page-width fb2-reader-title-height)))
+	 (title-face (cons (cons :height (list fb2-reader-title-height)) face))
 	 (fill-column-backup fill-column)
 	 start
 	 end)
 
-
     (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
       (insert "\n\n"))
     (setq start (point))
-    (setq-local fill-column title-width)
+    (setq-local fill-column title-fill-column)
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
@@ -280,6 +283,8 @@ It should be rendered when propertized text will be inserted into buffer."
  Property fb2-reader-tags will be set to TAGS and appended
 to placeholder."
 
+  ;; TODO: add alignment
+
   (when-let* ((type-char (alist-get type
 				    '(("image/jpeg" . jpeg) ("image/png" . png))
 				    nil nil 'equal))
@@ -291,7 +296,9 @@ to placeholder."
 						 :max-width 400
 						 :max-height 400))
 	      (width-ch (car (image-size img-adj)))
-	      (prefix-num (round (/ (- fill-column width-ch) 2)))
+	      (prefix-num (round (/ (- fb2-reader-page-width width-ch) 2)))
+	      ;; added as temporary fix for images and titles are not centered
+	      (prefix-num (round (/ prefix-num fb2-reader-title-height)))
 	      (prefix-str (string-join (make-list prefix-num " ")))
 	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
 				    'fb2-reader-image-params size-raw)))
@@ -857,7 +864,7 @@ Book name should be the same as archive except .zip extension."
 		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
 		   (fb2-reader-read-fb2 fb2-reader-file-name)))
       (setq-local cursor-type nil)
-      (insert (propertize "Rendering in process, please wait." 'face (list (cons :height (list 1.2)))))
+      (insert (propertize "Rendering in process, please wait." 'face (list (cons :height (list fb2-reader-title-height)))))
       (fill-region (point-min) (point-max) 'center)
       (fb2-reader-render-async book
 			       (lambda (result)
