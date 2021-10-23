@@ -548,26 +548,33 @@ if these parameters are set."
     ;; step forward for one char because when cursor appends exactly on title's
     ;; border prev/next single property function skips current change
     (forward-char 1)
-    (let (title-start title-end title-first-line-end titlestr)
+    (let ((start-point (point)) title-start title-end title-first-line-end titlestr)
       (setq title-end (funcall (if (plist-member (text-properties-at (point)) 'fb2-reader-title)
 				   'next-single-property-change
 				 'previous-single-property-change)
-			       (point) 'fb2-reader-title))
-      (if title-end (goto-char title-end))
+			       (point) 'fb2-reader-title)
+	    title-start (previous-single-property-change title-end 'fb2-reader-title))
 
-      (setq title-start (previous-single-property-change (point) 'fb2-reader-title))
+      ;; Go to previous title if we are on first line of title now
+      (when (eq (line-number-at-pos start-point) (line-number-at-pos title-start)) ;
+	(setq title-end (previous-single-property-change title-start 'fb2-reader-title)
+	      title-start (previous-single-property-change title-end 'fb2-reader-title)))
 
       (when title-start (goto-char title-start)
 	    (move-end-of-line 1)
 	    (setq title-first-line-end (point)))
 
       (when (and title-start title-end)
-	(setq titlestr (buffer-substring-no-properties title-start title-first-line-end))
-	(unless (eq (line-number-at-pos title-start) (1- (line-number-at-pos title-end)))
-	  (setq titlestr (concat (s-left (- (length titlestr) 3) titlestr) "..."))
-	  ;; (s-replace "\n" " " (s-trim (s-collapse-whitespace titlestr)))
+	(setq titlestr
+	      (s-collapse-whitespace (buffer-substring-no-properties title-start title-first-line-end)))
+	(if (or (eq (line-number-at-pos title-start) (1- (line-number-at-pos title-end))) ;oneline title
+		(eq 1 (- (line-number-at-pos start-point) (line-number-at-pos title-start)))) ;point on second line
+	    (setq titlestr (propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))
+	  (setq titlestr (propertize (concat (s-left (- (length titlestr) 3) titlestr) "...")
+				     'help-echo `(format "%s" ,(s-trim (buffer-substring-no-properties title-start title-end)))
+				     'face (list (cons :height (list fb2-reader-title-height)))))
 	  )
-	(setq titlestr (s-trim (s-collapse-whitespace titlestr)))
+
 	(concat (s-repeat (fb2-reader--center-prefix fill-column (length titlestr) fb2-reader-title-height) " ")
 		(propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))))))
 
