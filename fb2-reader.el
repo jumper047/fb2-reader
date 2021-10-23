@@ -413,7 +413,8 @@ to placeholder."
 	      (position (fb2-reader--get-target-pos target-id)))
     (setq fb2-reader-link-pos (point))
     (goto-char position)
-    (setq fb2-reader-link-target-pos (point))))
+    (setq fb2-reader-link-target-pos (point))
+    (recenter 0)))
 
 (defun fb2-reader-link-back ()
   "Go to last used link's location."
