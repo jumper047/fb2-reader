@@ -518,7 +518,7 @@ if these parameters are set."
 						(point) next-change)))) (point))
 	    index))
     (goto-char next-change))
-  (reversed index)))
+  (reverse index)))
 
 (defun fb2-reader-imenu-setup ()
   (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
