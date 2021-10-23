@@ -6,7 +6,7 @@
 ;; URL: https://github.com/jumper047/fb2-reader
 ;; Keywords: multimedia, ebook, fb2
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0"))
+;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -897,7 +897,8 @@ Book name should be the same as archive except .zip extension."
 
   (setq fb2-reader-file-name (buffer-file-name)
 	buffer-read-only nil
-	truncate-lines 1)
+	truncate-lines 1
+	fill-column fb2-reader-page-width)
   (buffer-disable-undo)
   (set-visited-file-name nil t) ; disable autosaves and save questions
   (add-hook 'kill-buffer-hook 'fb2-reader-save-pos nil t)
@@ -927,7 +928,9 @@ Book name should be the same as archive except .zip extension."
 				   (kill-local-variable 'cursor-type)))))
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
-	(fb2-reader-set-up-header-line))))
+	(fb2-reader-set-up-header-line))
+    (setq visual-fill-column-center-text 't)
+    (visual-fill-column-mode)))
 
 (provide 'fb2-reader)
 
