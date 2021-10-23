@@ -224,11 +224,45 @@ Exception for \"empty-line\" tag."
     (dolist (subitem body)
       (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
     (setq-local fill-column fill-column-backup)
+    ;; Because of strange fill-region behavior every line in region should be recenered
+    ;; (For some reason when fill-region invoked inside fb2r-format-string,
+    ;; every space or tab added to line not inherit :height property, and
+    ;; resulting line length became longer or shorter than planned)
+    (fb2-reader--recenter-region start (point) fb2-reader-title-height)
     (setq end (point))
     (insert "\n")
-    (add-text-properties start end '(fb2-reader-title t))))
+    (add-text-properties start end '(fb2-reader-title t))
+))
 
 
+(defun fb2-reader--center-prefix (linelen strlen height)
+  "Calculate number of spaces needed to center string.
+String to center has STRLEN symbols, every symbol has HEIGHT.
+LINELEN is maximum line's length (page width)"
+   (round (/ (- linelen (* strlen height)) 2)))
+
+(defun fb2-reader--recenter-region (begin end height)
+  "Recenter region from BEGIN to END.
+HEIGHT is font's height (should be coefficient).
+Every string's length in region should be less or equal fill column."
+  (let ((lines (number-sequence (line-number-at-pos begin)
+				(line-number-at-pos end)))
+	linestr)
+    (save-excursion
+      (dolist (linenum lines)
+	(goto-line linenum)
+	(setq linestr (s-trim (s-collapse-whitespace
+				       (buffer-substring
+					(point)
+					(progn
+					  (move-end-of-line 1) (point))))))
+	(when (> (length linestr) 0)
+	  (setq prefix (fb2-reader--center-prefix fill-column (length linestr) height))
+	  (move-beginning-of-line 1)
+	  (kill-line)
+	  (insert (s-repeat prefix " "))
+	  (insert linestr))))))
+	
 (defun fb2-reader--parse-cite (book body tags face current-tag)
 
   (let* ((indent 4)
@@ -297,8 +331,6 @@ to placeholder."
 						 :max-height 400))
 	      (width-ch (car (image-size img-adj)))
 	      (prefix-num (round (/ (- fb2-reader-page-width width-ch) 2)))
-	      ;; added as temporary fix for images and titles are not centered
-	      (prefix-num (round (/ prefix-num fb2-reader-title-height)))
 	      (prefix-str (string-join (make-list prefix-num " ")))
 	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
 				    'fb2-reader-image-params size-raw)))
