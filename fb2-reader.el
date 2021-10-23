@@ -333,9 +333,10 @@ to placeholder."
 	      (prefix-str (string-join (make-list prefix-num " ")))
 	      (fill-str (propertize " " 'fb2-reader-tags (cons 'image tags)
 				    'fb2-reader-image-params size-raw)))
+    (insert "\n")
     (insert prefix-str)
     (insert-image img-adj fill-str)
-    (insert "\n\n")
+    (insert "\n")
     ))
 
 (defun fb2-reader-restore-images (&optional buffer)
