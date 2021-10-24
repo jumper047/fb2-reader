@@ -500,7 +500,7 @@ if these parameters are set."
    callback))
 
 ;; Utilities
-(defun fb2-reader-assert-mode-p ()
+(defun fb2-reader--assert-mode-p ()
   "Check is current buffer is suitable to run command and throw error otherwise."
   (unless fb2-reader-file-name
     (error "Command suitable only for fb2-reader buffers")))
@@ -782,7 +782,7 @@ Replace already added data if presented."
   (interactive)
   (when (y-or-n-p "During refresh current position may change. Proceed? ")
     (message "Refreshing book asynchronously.")
-    (fb2-reader-assert-mode-p)
+    (fb2-reader--assert-mode-p)
     (fb2-reader--refresh-buffer)))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
