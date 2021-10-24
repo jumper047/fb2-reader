@@ -6,7 +6,7 @@
 ;; URL: https://github.com/jumper047/fb2-reader
 ;; Keywords: multimedia, ebook, fb2
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2"))
+;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2") (async "1.9.4"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -52,6 +52,8 @@
 (require 'dash)
 (require 'f)
 (require 's)
+(require 'visual-fill-column)
+(require 'async)
 
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
