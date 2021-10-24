@@ -254,7 +254,8 @@ Every string's length in region should be less or equal fill column."
 	linestr prefix)
     (save-excursion
       (dolist (linenum lines)
-	(goto-line linenum)
+	(goto-char (point-min))
+	(forward-line (1- linenum))
 	(setq linestr (s-trim (s-collapse-whitespace
 				       (buffer-substring
 					(point)
