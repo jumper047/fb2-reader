@@ -271,7 +271,7 @@ Every string's length in region should be less or equal fill column."
     (fb2-reader--insert-newline-maybe)
     (setq-local fill-column new-fill-column)
     (dolist (subitem body)
-    (fb2-reader-parse book subitem (cons current-tag tags) face 'left indent))
+    (fb2-reader-parse book subitem (cons current-tag tags) face 'full indent))
     (setq-local fill-column fill-column-backup)
     (fb2-reader--insert-newline-maybe)))
 
