@@ -6,7 +6,7 @@
 ;; URL: https://github.com/jumper047/fb2-reader
 ;; Keywords: multimedia, ebook, fb2
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2"))
+;; Package-Requires: ((emacs "27.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2"))
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -138,22 +138,18 @@ BOOK is whole xml tree (it is needed in case)"
 	    ((equal current-tag 'poem)
 	     (fb2-reader--parse-poem book body tags face current-tag))
 	    ((equal current-tag 'title)
-	     (fb2-reader--parse-title book body tags face current-tag)
-	     )
+	     (fb2-reader--parse-title book body tags face current-tag))
 	    ((equal current-tag 'cite)
-	     (fb2-reader--parse-cite book body tags face current-tag)
-	     )
+	     (fb2-reader--parse-cite book body tags face current-tag))
 	    ((equal current-tag 'empty-line)
 	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
 	    ((equal current-tag 'image)
 	     ;; Disabled due new async rendering function
 	     ;; (fb2-reader--parse-image book attributes tags)
-	     (fb2-reader--pickle-image book attributes tags)
-	     )
+	     (fb2-reader--pickle-image book attributes tags))
 	     
 	    ((equal current-tag 'a)
-	     (fb2-reader--parse-a-link book attributes body tags face current-tag)
-	     )
+	     (fb2-reader--parse-a-link book attributes body tags face current-tag))
 	    ((equal current-tag 'p)
 	     (fb2-reader--format-string book body tags
 					 face current-tag alignment indent))
@@ -290,8 +286,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
       (if (equal subtag 'stanza)
 	  (fb2-reader--insert-newline-maybe))
       (fb2-reader-parse book subitem (cons subtag subtags) face)))
-  (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special)))
-  )
+  (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special))))
 
 (defun fb2-reader--pickle-image (book attributes tags)
   "Save all image-related info from BOOK ATTRIBUTES and TAGS to text property.
@@ -304,9 +299,7 @@ It should be rendered when propertized text will be inserted into buffer."
     (insert (propertize " "
 			'fb2-reader-image-type type-str
 			'fb2-reader-image-data data-str
-			'fb2-reader-tags tags))
-
-    ))
+			'fb2-reader-tags tags))))
 
 (defun fb2-reader--extract-image-data (book attributes tags)
   "Parse image ATTRIBUTES and return image related data.
@@ -344,8 +337,7 @@ to placeholder."
     (insert "\n")
     (insert prefix-str)
     (insert-image img-adj fill-str)
-    (insert "\n")
-    ))
+    (insert "\n")))
 
 (defun fb2-reader-restore-images (&optional buffer)
   "Find all images pickled in BUFFER and restore them."
@@ -468,8 +460,7 @@ if these parameters are set."
   (let (curr-item)
     (setq curr-item item)
     (dolist (tag tags curr-item)
-      (setq curr-item (fb2-reader--find-subitem curr-item tag))
-    )))
+      (setq curr-item (fb2-reader--find-subitem curr-item tag)))))
 
 (defun fb2-reader--get-bodies (book)
   "Get list of all bodies from the BOOK."
@@ -502,8 +493,7 @@ if these parameters are set."
       (require 'fb2-reader)
       (with-temp-buffer
 	(fb2-reader-render (quote ,book))
-	(prin1-to-string (buffer-substring (point-min) (point-max))))
-      )
+	(prin1-to-string (buffer-substring (point-min) (point-max)))))
    callback))
 
 ;; Utilities
@@ -569,8 +559,7 @@ if these parameters are set."
 	    (setq titlestr (propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))
 	  (setq titlestr (propertize (concat (s-left (- (length titlestr) 3) titlestr) "...")
 				     'help-echo `(format "%s" ,(s-trim (buffer-substring-no-properties title-start title-end)))
-				     'face (list (cons :height (list fb2-reader-title-height)))))
-	  )
+				     'face (list (cons :height (list fb2-reader-title-height))))))
 
 	(concat (s-repeat (fb2-reader--center-prefix fill-column (length titlestr) fb2-reader-title-height) " ")
 		(propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))))))
@@ -688,8 +677,7 @@ NUMBER's sign determines search direction."
 	(insert ";; fb2-reader.el -- read fb2 books  ")
 	(insert "file contains cache index, don't edit.\n")
 	(insert (prin1-to-string index))
-	(insert "\n")
-    ))
+	(insert "\n")))
 
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
   "Check if cache for FILE available.
@@ -729,8 +717,7 @@ Replace already added data if presented."
       (insert ";; fb2-reader.el -- read fb2 books  ")
       (insert "file contains fb2-reader book cache, don't edit.\n")
       (insert "\n")
-      (insert (prin1-to-string data))
-      )
+      (insert (prin1-to-string data)))
     
     (push (list fb2-reader-file-name
 		(file-attribute-modification-time
@@ -864,8 +851,7 @@ Book name should be the same as archive except .zip extension."
       (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
 
     (f-delete tmpdir 't)
-    parsed
-    ))
+    parsed))
 
 (defun fb2-reader-read-fb2 (file)
   "Read book from .fb2 FILE."
@@ -886,8 +872,7 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "r") 'fb2-reader-link-forward)
   (define-key map (kbd "N") 'fb2-reader-link-forward)
   (define-key map (kbd "g") 'fb2-reader-refresh)
-  map)
-  )
+  map))
 
  
 (define-derived-mode fb2-reader-mode special-mode "FB2"
