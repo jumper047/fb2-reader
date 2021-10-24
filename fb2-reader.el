@@ -76,7 +76,8 @@
 
 (defcustom fb2-reader-show-images 't
   "Show images."
-  :type 'boolean)
+  :type 'boolean
+  :group 'fb2-reader)
 
 (defcustom fb2-reader-image-max-width 400
   "Maximum width of the displayed image."
@@ -192,7 +193,7 @@ BOOK is whole xml tree (it is needed in case)"
   "Insert newline if there is no newline inserted before.
 Exception for \"empty-line\" tag."
 
-  (let (prev-empty-line-p)
+  (let (already-added)
     (save-excursion
       (backward-char)
       (setq already-added
@@ -247,7 +248,7 @@ HEIGHT is font's height (should be coefficient).
 Every string's length in region should be less or equal fill column."
   (let ((lines (number-sequence (line-number-at-pos begin)
 				(line-number-at-pos end)))
-	linestr)
+	linestr prefix)
     (save-excursion
       (dolist (linenum lines)
 	(goto-line linenum)
@@ -279,8 +280,7 @@ Every string's length in region should be less or equal fill column."
 
   (dolist (subitem body)
     (let ((subtags (cons current-tag tags))
-	  (subtag (cl-first subitem))
-	  (subbody (cddr subitem)))
+	  (subtag (cl-first subitem)))
       (if (equal subtag 'stanza)
 	  (fb2-reader--insert-newline-maybe))
       (fb2-reader-parse book subitem (cons subtag subtags) face)))
@@ -735,7 +735,7 @@ Replace already added data if presented."
 			  (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
 	     (index (fb2-reader-cache-index)))
     (f-delete cache-file)
-    (remove filename index)
+    (setq index (remove filename index))
     (fb2-reader-save-cache-index
      (f-join fb2-reader-settings-dir fb2-reader-index-filename)
      index)))
