@@ -526,22 +526,6 @@ if these parameters are set."
 
 ;; Header line
 
-(defun fb2-reader-toc-bisect (toc pos)
-  "Get from TOC element with position right before POS."
-
-  (let* ((first (caar toc))
-	 (last (caar (last toc)))
-	 (toc-length (length toc))
-	 (mid (car (nth (/ toc-length 2) toc))))
-    (if (<= toc-length 2)
-	(if (> pos last)
-	    (cadadr toc)
-	(cadar toc))
-      (if (< pos mid)
-	  (fb2-reader-toc-bisect (butlast toc (1- (- toc-length (/ toc-length 2))))
-		  pos)
-	(fb2-reader-toc-bisect (seq-drop toc (/ toc-length 2)) pos)))))
-
 (defun fb2-reader-current-chapter ()
   "Get current chapter's title."
 
