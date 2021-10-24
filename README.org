@@ -1,8 +1,80 @@
 #+TITLE: FB2-reader
-
 #+PROPERTY: LOGGING nil
 
-Major mode to read FB2 books inside emacs. Should work with librera-sync to sync reading position with Librera Reader. 
+Major mode to read FictionBook2 documents.
+
+*Features:*
+ 
+- read .fb2 and .fb2.zip files
+- reach book formatting
+- showing current title in header line
+- internal links (select from keyboard, jumb back and forth)
+- navigation (next/previous chapters, imenu support)
+- restoring last read position
+
+*Coming soon:*
+
+- book info screen
+- displaying raw xml
+- integration with https://github.com/jumper047/librera-sync
+
+
+* TL;DR
+  Add to your config and open any .fb2 or .fb2.zip document.
+  #+begin_src emacs-lisp
+    (use-package fb2-reader
+      :load-path "path/to/fb2-reader-dir"
+      :mode (("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
+      :custom
+      ;; This mode renders book with fixed width, adjust to your preferences.
+      (fb2-reader-page-width 120)
+      (fb2-reader-image-max-width 400)
+      (fb2-reader-image-max-height 400))
+  #+end_src
+
+* Installation
+
+** Plain
+   Download fb2-reader.el, put it somewhere in your load-path, add that string to your config:
+   #+begin_src emacs-lisp
+     (add-to-list 'load-path "path/to/fb2-reader-dir")
+     (require 'fb2-reader)
+     (add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
+   #+end_src
+
+   Also you can set it up with use-package:
+   #+begin_src emacs-lisp
+     (use-package fb2-reader
+       :load-path "path/to/fb2-reader-dir"
+       :mode (("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode)))
+   #+end_src
+
+** Melpa
+   Coming soon
+
+* Customization
+  Every book rendered as buffer with certain width, so you may want to tune variables related to your monitor's size or reading preferences:
+  - *fb2-reader-page-width* - width of rendered book
+  - *fb2-reader-image-max-width* and *fb2-reader-image-max-height* - max. width and height of an images in book.
+  
+  You can view all available options with =M-x customize-group fb2-reader=.
+  
+* Usage
+  Just open an .fb2 or .fb2.zip file.
+  First opening will take a time - book will be rendered and saved to cache, so all next ones will be quick.
+  Default bindings listed below:
+  |----------+-----------------------------------------------|
+  | Key      | Description                                   |
+  |----------+-----------------------------------------------|
+  | =[=, =]= | Jump to previous or next chapter              |
+  |----------+-----------------------------------------------|
+  | =p=, =n= | Jump to previous or next displayed link       |
+  |----------+-----------------------------------------------|
+  | =l=, =r= | History navigation (for now, actualy, it just |
+  | =B=, =N= | jumps between last link target and location)  |
+  |----------+-----------------------------------------------|
+  | =r=      | Reload current book                           |
+
 
 * Aknowledgements
 Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]
