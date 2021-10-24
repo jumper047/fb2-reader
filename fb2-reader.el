@@ -104,6 +104,13 @@
 (defvar fb2-reader-position-filename "positions.el"
   "Filename for file containing last positions in books.")
 
+(defvar fb2-reader-link-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [follow-link] 'mouse-face)
+    (define-key map "\r" 'fb2-reader-follow-link)
+    (define-key map [mouse-2] 'fb2-reader-follow-link)
+    map))
+
 (defvar-local fb2-reader-file-name nil
   "Book's filename (replaces buffer-file-name).")
 
@@ -435,13 +442,6 @@ to placeholder."
   (if fb2-reader-link-pos
       (goto-char fb2-reader-link-target-pos)
     (message "You don't follow any link in this buffer.")))
-
-(defvar fb2-reader-link-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [follow-link] 'mouse-face)
-    (define-key map "\r" 'fb2-reader-follow-link)
-    (define-key map [mouse-2] 'fb2-reader-follow-link)
-    map))
 
 (defun fb2-reader--find-subitem (item tag &optional property value)
   "Find first ITEM 's child with TAG.
@@ -783,7 +783,7 @@ Replace already added data if presented."
 (defun fb2-reader-refresh ()
   "Reread current book from disk, render and display it."
   (interactive)
-  (fb2-reader-assert-mode-p)
+  (fb2-reader--assert-mode-p)
   (when (y-or-n-p "During refresh current position may change. Proceed? ")
     (message "Refreshing book asynchronously.")
     (fb2-reader--assert-mode-p)
@@ -797,7 +797,7 @@ Replace already added data if presented."
 	(randstr "")
 	randchar
 	randnum)
-    (while (length< randstr 7)
+    (while (< (length randstr) 7)
       (setq randnum (% (abs (random)) (length chars))
 	    randchar (substring chars randnum (1+ randnum))
 	    randstr (concat randstr randchar)))
