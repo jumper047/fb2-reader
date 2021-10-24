@@ -33,8 +33,9 @@
 ;; 
 ;; - read .fb2 and .fb2.zip files
 ;; - rich book formatting
+;; - showing current title in header line
 ;; - internal links (select from keyboard, jumb back and forth)
-;; - navigaion (next/previous chapters, imenu support)
+;; - navigation (next/previous chapters, imenu support)
 ;; - restoring last read position
 ;;
 ;; Coming soon:
