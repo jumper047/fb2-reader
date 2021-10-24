@@ -6,7 +6,9 @@
 ;; URL: https://github.com/jumper047/fb2-reader
 ;; Keywords: multimedia, ebook, fb2
 ;; Version: 0.1.0
+
 ;; Package-Requires: ((emacs "26.1") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2") (async "1.9.4"))
+
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,6 +48,7 @@
 
 ;;; Code:
 
+(require 'visual-fill-column)
 (require 'subr-x)
 (require 'cl-lib)
 (require 'imenu)
@@ -78,7 +81,8 @@
 
 (defcustom fb2-reader-show-images 't
   "Show images."
-  :type 'boolean)
+  :type 'boolean
+  :group 'fb2-reader)
 
 (defcustom fb2-reader-image-max-width 400
   "Maximum width of the displayed image."
@@ -138,22 +142,18 @@ BOOK is whole xml tree (it is needed in case)"
 	    ((equal current-tag 'poem)
 	     (fb2-reader--parse-poem book body tags face current-tag))
 	    ((equal current-tag 'title)
-	     (fb2-reader--parse-title book body tags face current-tag)
-	     )
+	     (fb2-reader--parse-title book body tags face current-tag))
 	    ((equal current-tag 'cite)
-	     (fb2-reader--parse-cite book body tags face current-tag)
-	     )
+	     (fb2-reader--parse-cite book body tags face current-tag))
 	    ((equal current-tag 'empty-line)
 	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
 	    ((equal current-tag 'image)
 	     ;; Disabled due new async rendering function
 	     ;; (fb2-reader--parse-image book attributes tags)
-	     (fb2-reader--pickle-image book attributes tags)
-	     )
+	     (fb2-reader--pickle-image book attributes tags))
 	     
 	    ((equal current-tag 'a)
-	     (fb2-reader--parse-a-link book attributes body tags face current-tag)
-	     )
+	     (fb2-reader--parse-a-link book attributes body tags face current-tag))
 	    ((equal current-tag 'p)
 	     (fb2-reader--format-string book body tags
 					 face current-tag alignment indent))
@@ -169,7 +169,8 @@ BOOK is whole xml tree (it is needed in case)"
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
 (defun fb2-reader--format-string (book body tags face curr-tag  alignment indent  &optional indent-first append-newline)
-
+  "Format BODY according to FACE, ALIGNMENT and INDENT and insert it.
+BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
   (or indent-first (setq indent-first 2))
   (or append-newline (setq append-newline 't))
   (let* ((point-start (point))
@@ -194,7 +195,7 @@ BOOK is whole xml tree (it is needed in case)"
   "Insert newline if there is no newline inserted before.
 Exception for \"empty-line\" tag."
 
-  (let (prev-empty-line-p)
+  (let (already-added)
     (save-excursion
       (backward-char)
       (setq already-added
@@ -204,6 +205,8 @@ Exception for \"empty-line\" tag."
       (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
 
 (defun fb2-reader--parse-section (book attributes body tags face curr-tag)
+  "Parse section, add fb2-reader-id text property if id found in ATTRIBUTES.
+BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
   (let ((start (point))
 	(id (alist-get 'id attributes)))
     (dolist (subitem body)
@@ -249,7 +252,7 @@ HEIGHT is font's height (should be coefficient).
 Every string's length in region should be less or equal fill column."
   (let ((lines (number-sequence (line-number-at-pos begin)
 				(line-number-at-pos end)))
-	linestr)
+	linestr prefix)
     (save-excursion
       (dolist (linenum lines)
 	(goto-line linenum)
@@ -266,7 +269,8 @@ Every string's length in region should be less or equal fill column."
 	  (insert linestr))))))
 	
 (defun fb2-reader--parse-cite (book body tags face current-tag)
-
+  "Parse BODY as cite and insert it.
+BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
   (let* ((indent 4)
 	 (fill-column-backup fill-column)
 	 (new-fill-column (- fill-column indent)))
@@ -278,18 +282,15 @@ Every string's length in region should be less or equal fill column."
     (fb2-reader--insert-newline-maybe)))
 
 (defun fb2-reader--parse-poem (book body tags face current-tag)
-
+  "Parse BODY as poem and insert it.
+BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
   (dolist (subitem body)
     (let ((subtags (cons current-tag tags))
-	  (subtag (cl-first subitem))
-	  (subbody (cddr subitem)))
+	  (subtag (cl-first subitem)))
       (if (equal subtag 'stanza)
 	  (fb2-reader--insert-newline-maybe))
       (fb2-reader-parse book subitem (cons subtag subtags) face)))
-  (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special)))
-  )
-
-
+  (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special))))
 
 (defun fb2-reader--pickle-image (book attributes tags)
   "Save all image-related info from BOOK ATTRIBUTES and TAGS to text property.
@@ -302,11 +303,12 @@ It should be rendered when propertized text will be inserted into buffer."
     (insert (propertize " "
 			'fb2-reader-image-type type-str
 			'fb2-reader-image-data data-str
-			'fb2-reader-tags tags))
-
-    ))
+			'fb2-reader-tags tags))))
 
 (defun fb2-reader--extract-image-data (book attributes tags)
+  "Parse image ATTRIBUTES and return image related data.
+List of type string, binary data string, and tags will be returned.
+BOOK is whole book's xml tree. TAGS are list of fb2 tags."
   (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	      (binary (fb2-reader--find-binary book id))
 	      (type-str (alist-get 'content-type (cl-second binary)))
@@ -339,8 +341,7 @@ to placeholder."
     (insert "\n")
     (insert prefix-str)
     (insert-image img-adj fill-str)
-    (insert "\n")
-    ))
+    (insert "\n")))
 
 (defun fb2-reader-restore-images (&optional buffer)
   "Find all images pickled in BUFFER and restore them."
@@ -394,6 +395,7 @@ to placeholder."
 				 'mouse-face 'highlight))))
 
 (defun fb2-reader--get-target-pos (id)
+  "Get target position for link with certain ID."
   (save-excursion
     (goto-char (point-min))
     
@@ -462,8 +464,7 @@ if these parameters are set."
   (let (curr-item)
     (setq curr-item item)
     (dolist (tag tags curr-item)
-      (setq curr-item (fb2-reader--find-subitem curr-item tag))
-    )))
+      (setq curr-item (fb2-reader--find-subitem curr-item tag)))))
 
 (defun fb2-reader--get-bodies (book)
   "Get list of all bodies from the BOOK."
@@ -496,12 +497,11 @@ if these parameters are set."
       (require 'fb2-reader)
       (with-temp-buffer
 	(fb2-reader-render (quote ,book))
-	(prin1-to-string (buffer-substring (point-min) (point-max))))
-      )
+	(prin1-to-string (buffer-substring (point-min) (point-max)))))
    callback))
 
 ;; Utilities
-(defun fb2-reader-assert-mode-p ()
+(defun fb2-reader--assert-mode-p ()
   "Check is current buffer is suitable to run command and throw error otherwise."
   (unless fb2-reader-file-name
     (error "Command suitable only for fb2-reader buffers")))
@@ -509,7 +509,8 @@ if these parameters are set."
 ;; Imenu support
 
 (defun fb2-reader-imenu-create-index ()
-  (goto-char (point-min))
+ "Create index for imenu."
+ (goto-char (point-min))
   (let (next-change plist index)
   (while (not (eobp))
     (setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
@@ -524,6 +525,7 @@ if these parameters are set."
   (reverse index)))
 
 (defun fb2-reader-imenu-setup ()
+  "Set apropriate \"imenu-create-index-function\"."
   (setq imenu-create-index-function 'fb2-reader-imenu-create-index))
 
 
@@ -561,8 +563,7 @@ if these parameters are set."
 	    (setq titlestr (propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))
 	  (setq titlestr (propertize (concat (s-left (- (length titlestr) 3) titlestr) "...")
 				     'help-echo `(format "%s" ,(s-trim (buffer-substring-no-properties title-start title-end)))
-				     'face (list (cons :height (list fb2-reader-title-height)))))
-	  )
+				     'face (list (cons :height (list fb2-reader-title-height))))))
 
 	(concat (s-repeat (fb2-reader--center-prefix fill-column (length titlestr) fb2-reader-title-height) " ")
 		(propertize titlestr 'face (list (cons :height (list fb2-reader-title-height)))))))))
@@ -603,6 +604,8 @@ LOADFN should receive only one argument - full path to file."
 ;; Navigation
 
 (defun fb2-reader--jump-property (number propname)
+  "Jump nth PROPNAME occurance in buffer.
+NUMBER's sign determines search direction."
   (unless (eq number 0)	;do nothing if chapter is 0.
     (let* ((fwd (> number 0))
 	   (obp (if fwd 'eobp 'bobp))
@@ -678,8 +681,7 @@ LOADFN should receive only one argument - full path to file."
 	(insert ";; fb2-reader.el -- read fb2 books  ")
 	(insert "file contains cache index, don't edit.\n")
 	(insert (prin1-to-string index))
-	(insert "\n")
-    ))
+	(insert "\n")))
 
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
   "Check if cache for FILE available.
@@ -719,8 +721,7 @@ Replace already added data if presented."
       (insert ";; fb2-reader.el -- read fb2 books  ")
       (insert "file contains fb2-reader book cache, don't edit.\n")
       (insert "\n")
-      (insert (prin1-to-string data))
-      )
+      (insert (prin1-to-string data)))
     
     (push (list fb2-reader-file-name
 		(file-attribute-modification-time
@@ -737,7 +738,7 @@ Replace already added data if presented."
 			  (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
 	     (index (fb2-reader-cache-index)))
     (f-delete cache-file)
-    (remove filename index)
+    (setq index (remove filename index))
     (fb2-reader-save-cache-index
      (f-join fb2-reader-settings-dir fb2-reader-index-filename)
      index)))
@@ -765,6 +766,7 @@ Replace already added data if presented."
   (set-buffer-modified-p nil)))))
 
 (defun fb2-reader--refresh-buffer (&optional buffer)
+  "Rerender book opened in BUFFER."
   (setq buffer (or buffer (current-buffer)))
   (let ((book (if (equal "zip" (f-ext fb2-reader-file-name))
 		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
@@ -781,9 +783,10 @@ Replace already added data if presented."
 (defun fb2-reader-refresh ()
   "Reread current book from disk, render and display it."
   (interactive)
+  (fb2-reader-assert-mode-p)
   (when (y-or-n-p "During refresh current position may change. Proceed? ")
     (message "Refreshing book asynchronously.")
-    (fb2-reader-assert-mode-p)
+    (fb2-reader--assert-mode-p)
     (fb2-reader--refresh-buffer)))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
@@ -802,7 +805,7 @@ Replace already added data if presented."
 
 
 (defun fb2-reader-positions ()
-  "Read file with saved positions and return alist"
+  "Read file with saved positions and return alist."
 
   (fb2-reader-load-settings 'fb2-reader-load-file
 			    fb2-reader-position-filename))
@@ -852,8 +855,7 @@ Book name should be the same as archive except .zip extension."
       (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
 
     (f-delete tmpdir 't)
-    parsed
-    ))
+    parsed))
 
 (defun fb2-reader-read-fb2 (file)
   "Read book from .fb2 FILE."
@@ -874,8 +876,7 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "r") 'fb2-reader-link-forward)
   (define-key map (kbd "N") 'fb2-reader-link-forward)
   (define-key map (kbd "g") 'fb2-reader-refresh)
-  map)
-  )
+  map))
 
  
 (define-derived-mode fb2-reader-mode special-mode "FB2"
