@@ -46,6 +46,7 @@
 
 ;;; Code:
 
+(require 'visual-fill-column)
 (require 'subr-x)
 (require 'cl-lib)
 (require 'imenu)
