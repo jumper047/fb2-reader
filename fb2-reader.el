@@ -382,7 +382,7 @@ to placeholder."
 (defun fb2-reader--create-image (data type &rest props)
   "Create image of type TYPE from image DATA."
 
-  (apply 'create-image data type 't props))
+  (apply #'create-image data type 't props))
 
 
 ;; Links
@@ -890,9 +890,9 @@ Book name should be the same as archive except .zip extension."
 	fill-column fb2-reader-page-width)
   (buffer-disable-undo)
   (set-visited-file-name nil t) ; disable autosaves and save questions
-  (add-hook 'kill-buffer-hook 'fb2-reader-save-pos nil t)
+  (add-hook 'kill-buffer-hook #'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
-  (add-hook 'kill-emacs-hook 'fb2-reader-save-all-pos)
+  (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
   (fb2-reader-ensure-settingsdir)
   (erase-buffer)
   (let ((bufname (buffer-name))
