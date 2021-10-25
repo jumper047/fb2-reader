@@ -878,7 +878,8 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "g") 'fb2-reader-refresh)
   map))
 
- 
+
+;;;###autoload
 (define-derived-mode fb2-reader-mode special-mode "FB2"
   "Major mode for reading FB2 books.
 \\{fb2-reader-mode-map}"
