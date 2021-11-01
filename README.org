@@ -1,4 +1,5 @@
 #+TITLE: FB2-reader
+#+html: <img src="./images/rohanreads.gif" align="right" width="90%">
 #+PROPERTY: LOGGING nil
 [[https://melpa.org/#/fb2-reader][file:https://melpa.org/packages/fb2-reader-badge.svg]]
 
