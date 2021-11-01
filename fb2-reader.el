@@ -434,14 +434,14 @@ to placeholder."
   (interactive)
   (if fb2-reader-link-pos
       (goto-char fb2-reader-link-pos)
-    (message "You don't follow any link in this buffer.")))
+    (user-error "This is first element in history")))
 
 (defun fb2-reader-link-forward ()
   "Go to last used link's location."
   (interactive)
   (if fb2-reader-link-pos
       (goto-char fb2-reader-link-target-pos)
-    (message "You don't follow any link in this buffer.")))
+    (user-error "This is last element in history")))
 
 (defun fb2-reader--find-subitem (item tag &optional property value)
   "Find first ITEM 's child with TAG.
@@ -504,7 +504,7 @@ if these parameters are set."
 (defun fb2-reader--assert-mode-p ()
   "Check is current buffer is suitable to run command and throw error otherwise."
   (unless fb2-reader-file-name
-    (error "Command suitable only for fb2-reader buffers")))
+    (user-error "Command suitable only for fb2-reader buffers")))
 
 ;; Imenu support
 
