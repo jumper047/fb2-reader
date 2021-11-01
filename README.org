@@ -1,5 +1,6 @@
 #+TITLE: FB2-reader
 #+PROPERTY: LOGGING nil
+[[https://melpa.org/#/fb2-reader][file:https://melpa.org/packages/fb2-reader-badge.svg]]
 
 Major mode to read FictionBook2 documents.
 
