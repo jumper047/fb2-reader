@@ -20,13 +20,12 @@ Major mode to read FictionBook2 documents.
 - book info screen
 - displaying raw xml
 - integration with https://github.com/jumper047/librera-sync
-
+- rendering book in org-mode
 
 * TL;DR
   Add to your config and open any .fb2 or .fb2.zip document.
   #+begin_src emacs-lisp
     (use-package fb2-reader
-      :load-path "path/to/fb2-reader-dir"
       :mode (("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
       :custom
       ;; This mode renders book with fixed width, adjust to your preferences.
@@ -37,10 +36,8 @@ Major mode to read FictionBook2 documents.
 
 * Installation
 
-** Plain
-   Download fb2-reader.el, put it somewhere in your load-path, add that string to your config:
+  Install =fb2-reader= from MELPA and add that string to your config:
    #+begin_src emacs-lisp
-     (add-to-list 'load-path "path/to/fb2-reader-dir")
      (require 'fb2-reader)
      (add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
    #+end_src
@@ -48,12 +45,8 @@ Major mode to read FictionBook2 documents.
    Also you can set it up with use-package:
    #+begin_src emacs-lisp
      (use-package fb2-reader
-       :load-path "path/to/fb2-reader-dir"
        :mode (("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode)))
    #+end_src
-
-** Melpa
-   Coming soon
 
 * Customization
   Every book rendered as buffer with certain width, so you may want to tune variables related to your monitor's size or reading preferences:
