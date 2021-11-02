@@ -69,7 +69,7 @@ Major mode to read FictionBook2 documents.
   | =l=, =r= | History navigation (for now, actualy, it just |
   | =B=, =N= | jumps between last link target and location)  |
   |----------+-----------------------------------------------|
-  | =r=      | Reload current book                           |
+  | =g=      | Reload current book                           |
 
 
 * Aknowledgements
