@@ -60,7 +60,7 @@ Major mode to read FictionBook2 documents.
   First opening will take a time - book will be rendered and saved to cache, so all next ones will be quick.
   Default bindings listed below:
   |----------+-----------------------------------------------|
-  | Key      | Description                                   |
+  | Key      | Action                                        |
   |----------+-----------------------------------------------|
   | =[=, =]= | Jump to previous or next chapter              |
   |----------+-----------------------------------------------|
