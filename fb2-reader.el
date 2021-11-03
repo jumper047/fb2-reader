@@ -75,7 +75,7 @@
   :type 'directory
   :group 'fb2-reader)
 
-(defcustom fb2-reader-title-in-headerline t
+(defcustom fb2-reader-title-in-headerline nil
   "Show current chapter's title in headerline."
   :type 'boolean
   :group 'fb2-reader)
