@@ -39,11 +39,11 @@
 ;; - internal links (select from keyboard, jumb back and forth)
 ;; - navigation (next/previous chapters, imenu support)
 ;; - restoring last read position
+;; - displaying raw xml
 ;;
 ;; Coming soon:
 ;; 
 ;; - book info screen
-;; - displaying raw xml
 ;; - integration with https://github.com/jumper047/librera-sync
 ;; - rendering book in org-mode
 ;;
@@ -780,9 +780,8 @@ Replace already added data if presented."
 (defun fb2-reader--refresh-buffer (&optional buffer)
   "Rerender book opened in BUFFER."
   (setq buffer (or buffer (current-buffer)))
-  (let ((book (if (equal "zip" (f-ext fb2-reader-file-name))
-		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
-		(fb2-reader-read-fb2 fb2-reader-file-name))))
+  (let ((book (fb2-reader-parse-file
+	       (buffer-local-value 'fb2-reader-file-name buffer))))
     (fb2-reader-save-pos buffer)
     (fb2-reader-render-async book
 			     (lambda (result)
@@ -853,9 +852,7 @@ Replace already added data if presented."
 
 (defun fb2-reader-read-fb2-zip (file)
   "Read book from fb2.zip FILE.
-
 Book name should be the same as archive except .zip extension."
-
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
 			 'directory) (f-path-separator)))
@@ -864,18 +861,41 @@ Book name should be the same as archive except .zip extension."
 
     (with-temp-buffer
       (insert-file-contents (f-join tmpdir (f-base file)))
-      (setq parsed (libxml-parse-xml-region (point-min) (point-max))))
-
+      (setq parsed (buffer-string)))
     (f-delete tmpdir 't)
     parsed))
 
 (defun fb2-reader-read-fb2 (file)
   "Read book from .fb2 FILE."
-  
   (with-temp-buffer
     (insert-file-contents file)
+    (buffer-string)))
+
+(defun fb2-reader-read-file (file)
+  "Read FB2 or FB2.ZIP FILE."
+  (if (equal "zip" (f-ext file))
+      (fb2-reader-read-fb2-zip file)
+    (fb2-reader-read-fb2 file)))
+
+(defun fb2-reader-parse-file (file)
+  "Read and parse FB2 FILE, return xml tree."
+  (with-temp-buffer
+    (insert (fb2-reader-read-file file))
     (libxml-parse-xml-region (point-min) (point-max))))
 
+(defun fb2-reader-show-xml ()
+  "Open current book's raw xml."
+  (interactive)
+  (let* ((bname (format "*XML: %s*" (current-buffer)))
+	 (fname fb2-reader-file-name)
+	 (buffer-exist-p (get-buffer bname))
+	 (buffer (get-buffer-create bname)))
+    (switch-to-buffer buffer)
+    (unless buffer-exist-p
+      (insert (fb2-reader-read-file fname))
+      (setq buffer-read-only 't)
+      (xml-mode)
+      (goto-char (point-min)))))
 
 (defvar fb2-reader-mode-map
   (let ((map (make-sparse-keymap)))
@@ -888,6 +908,7 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "r") 'fb2-reader-link-forward)
   (define-key map (kbd "N") 'fb2-reader-link-forward)
   (define-key map (kbd "g") 'fb2-reader-refresh)
+  (define-key map (kbd "v") 'fb2-reader-show-xml)
   map))
 
 
@@ -912,9 +933,7 @@ Book name should be the same as archive except .zip extension."
     ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
     (if (fb2-reader-cache-avail-p fb2-reader-file-name 't)
 	(fb2-reader-restore-buffer)
-      (setq book (if (equal "zip" (f-ext fb2-reader-file-name))
-		     (fb2-reader-read-fb2-zip fb2-reader-file-name)
-		   (fb2-reader-read-fb2 fb2-reader-file-name)))
+      (setq book (fb2-reader-parse-file fb2-reader-file-name))
       (setq-local cursor-type nil)
       (insert (propertize "Rendering in process, please wait." 'face (list (cons :height (list fb2-reader-title-height)))))
       (fill-region (point-min) (point-max) 'center)

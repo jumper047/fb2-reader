@@ -6,6 +6,8 @@
 
 Major mode to read FictionBook2 documents.
 
+[[./images/window.png]]
+
 *Features:*
  
 - read .fb2 and .fb2.zip files
@@ -14,11 +16,11 @@ Major mode to read FictionBook2 documents.
 - internal links (select from keyboard, jumb back and forth)
 - navigation (next/previous chapters, imenu support)
 - restoring last read position
+- displaying raw xml
 
 *Coming soon:*
 
 - book info screen
-- displaying raw xml
 - integration with https://github.com/jumper047/librera-sync
 - rendering book in org-mode
 
@@ -70,7 +72,8 @@ Major mode to read FictionBook2 documents.
   | =B=, =N= | jumps between last link target and location)  |
   |----------+-----------------------------------------------|
   | =g=      | Reload current book                           |
-
+  |----------+-----------------------------------------------|
+  | =v=      | View current book as xml                      |
 
 * Aknowledgements
 Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]
