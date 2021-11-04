@@ -1,6 +1,6 @@
 #+TITLE: FB2-reader
 #+PROPERTY: LOGGING nil
-[[https://melpa.org/#/fb2-reader][file:https://melpa.org/packages/fb2-reader-badge.svg]] [[file:https://github.com/jumper047/fb2-reader/actions/workflows/test.yml/badge.svg]]
+[[https://melpa.org/#/fb2-reader][file:https://melpa.org/packages/fb2-reader-badge.svg]]
 
 [[./images/rohanreads.gif]]
 
