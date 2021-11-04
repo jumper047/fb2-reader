@@ -492,6 +492,7 @@ if these parameters are set."
 
   (cl-third (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'book-title)))
 
+
 (defun fb2-reader-render (book)
   "Render BOOK and insert it into the current buffer."
 
