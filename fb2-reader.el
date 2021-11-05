@@ -461,14 +461,15 @@ to placeholder."
 Founded item should have PROPERTY with certain VALUE,
 if these parameters are set."
   (if (listp item)
-      (catch 'subitem (dolist (subitem item)
+      (catch 'subitem (progn (dolist (subitem item)
 			(if (and
 			     (listp subitem)
 			     (equal (cl-first subitem) tag)
 			     (or (not property)
 				 (and (listp (cl-second subitem))
 				      (equal value (alist-get property (cl-second subitem))))))
-			    (throw 'subitem subitem))))))
+			    (throw 'subitem subitem)))
+			     nil))))
 
 (defun fb2-reader--find-subitem-recursively (item &rest tags)
   "Find ITEM 's subitem with first tag from TAGS, then subitem's subitem with second tag and so on."
