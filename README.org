@@ -17,10 +17,10 @@ Major mode to read FictionBook2 documents.
 - navigation (next/previous chapters, imenu support)
 - restoring last read position
 - displaying raw xml
+- book info screen
 
 *Coming soon:*
 
-- book info screen
 - integration with https://github.com/jumper047/librera-sync
 - rendering book in org-mode
 
@@ -74,6 +74,8 @@ Major mode to read FictionBook2 documents.
   | =g=      | Reload current book                           |
   |----------+-----------------------------------------------|
   | =v=      | View current book as xml                      |
+  |----------+-----------------------------------------------|
+  | =i=      | View FB2 metadata                             |
 
 * Aknowledgements
 Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]
