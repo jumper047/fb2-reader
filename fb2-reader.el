@@ -995,7 +995,8 @@ Book name should be the same as archive except .zip extension."
 (defun fb2-reader-show-xml ()
   "Open current book's raw xml."
   (interactive)
-  (let* ((bname (format "*XML: %s*" (current-buffer)))
+  (fb2-reader--assert-mode-p)
+  (let* ((bname (format "*XML: %s*" (buffer-name)))
 	 (fname fb2-reader-file-name)
 	 (buffer-exist-p (get-buffer bname))
 	 (buffer (get-buffer-create bname)))
