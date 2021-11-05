@@ -76,6 +76,8 @@ Major mode to read FictionBook2 documents.
   | =v=      | View current book as xml                      |
   |----------+-----------------------------------------------|
   | =i=      | View FB2 metadata                             |
+  |----------+-----------------------------------------------|
+  | =j=      | Jump to chapter via imenu                     |
 
 * Aknowledgements
 Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]

@@ -1081,6 +1081,7 @@ Book name should be the same as archive except .zip extension."
   (define-key map (kbd "g") 'fb2-reader-refresh)
   (define-key map (kbd "v") 'fb2-reader-show-xml)
   (define-key map (kbd "i") 'fb2-reader-show-info)
+  (define-key map (kbd "j") 'imenu)
   map))
 
 
