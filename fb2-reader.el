@@ -146,6 +146,8 @@
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-current-chapter))))
 
+;; Fb2 parsing
+
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
   "Recursively parse ITEM and insert it into the buffer.
 BOOK is whole xml tree (it is needed in case)"
