@@ -1,9 +1,14 @@
 ;;; fb2-parser-test.el --- Tests for fb2 parser
 ;;; Commentary:
 ;;; Code:
+(require 'buttercup)
+(require 'fb2-reader)
+
 (load (expand-file-name "fb2-reader.el" default-directory))
 (describe "Dummy test for fb2 parser"
-	  :var ((fb2-content "<?xml version=\"1.0\" encoding=\"windows-1251\"?>
+	  :var (fb2-content)
+	  (it "just tests if parser works without errors"
+	    (setq fb2-content "<?xml version=\"1.0\" encoding=\"windows-1251\"?>
 <FictionBook xmlns=\"http://www.gribuser.ru/xml/fictionbook/2.0\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">
   <description xmlns:l=\"http://www.w3.org/1999/xlink\">
     <title-info>
@@ -95,9 +100,10 @@
 	</section>
 	</section>
       </body>
-    </FictionBook>"))
-	  (it "just tests if parser works without errors"
-	      (with-temp-buffer
+
+    </FictionBook>")
+	    (with-temp-buffer
+	      
 		(insert fb2-content)
 		(fb2-reader-render (xml-parse-region (point-min) (point-max)))))
 	  )
