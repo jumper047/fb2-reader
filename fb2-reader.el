@@ -110,6 +110,11 @@
   :type 'float
   :group 'fb2-reader)
 
+(defcustom fb2-reader-max-in-cache 20
+  "Maximum number of files stored in cache."
+  :type 'integer
+  :group 'fb2-reader)
+
 (defface fb2-reader-info-field-face
   '((t (:weight bold)))
   "Face for field name in book info buffer."
@@ -849,7 +854,7 @@ Replace already added data if presented."
 		 (file-attributes fb2-reader-file-name))
  		cache-filename)
 	  index)
-    (fb2-reader-save-cache-index idx-filename index)))
+    (fb2-reader-save-cache-index idx-filename (-take fb2-reader-max-in-cache index))))
 
 
 (defun fb2-reader-remove-from-cache (filename)
