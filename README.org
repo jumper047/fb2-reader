@@ -1,12 +1,9 @@
 #+TITLE: FB2-reader
+#+html: <img src="./images/mascot.gif" align="right" width="16%">
 #+PROPERTY: LOGGING nil
 [[https://melpa.org/#/fb2-reader][file:https://melpa.org/packages/fb2-reader-badge.svg]]
 
-[[./images/rohanreads.gif]]
-
-Major mode to read FictionBook2 documents.
-
-[[./images/window.png]]
+Plugin for Emacs to read FictionBook2 ebooks.
 
 *Features:*
  
@@ -23,6 +20,8 @@ Major mode to read FictionBook2 documents.
 
 - integration with https://github.com/jumper047/librera-sync
 - rendering book in org-mode
+
+[[./images/window.png]]
 
 * TL;DR
   Add to your config and open any .fb2 or .fb2.zip document.
