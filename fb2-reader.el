@@ -1106,6 +1106,7 @@ Book name should be the same as archive except .zip extension."
   (buffer-disable-undo)
   (set-visited-file-name nil t) ; disable autosaves and save questions
   (add-hook 'kill-buffer-hook #'fb2-reader-save-pos nil t)
+  (add-hook 'quit-window-hook #'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
   (fb2-reader-ensure-settingsdir)
