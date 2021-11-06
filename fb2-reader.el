@@ -436,6 +436,7 @@ to placeholder."
 	       (insert (format "%s: %s\n" (fb2-reader--format-symbol current-tag 'fb2-reader-info-field-face) (if (stringp (car body)) (car body) " -"))))))))
 
 (defun fb2-reader--format-symbol (symbol face)
+  "Take SYMBOL, transform it it readable string and apply FACE."
   (let ((prop (cond ((equal face 'fb2-reader-info-field-face)
 		     'fb2-reader-info-field)
 		    ((equal face 'fb2-reader-info-category-face)
