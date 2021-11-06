@@ -970,11 +970,15 @@ Book name should be the same as archive except .zip extension."
   (let ((tmpdir (concat (make-temp-file
 			 (concat (f-base file) "-")
 			 'directory) (f-path-separator)))
-	parsed)
+	fb2-file parsed)
     (call-process "unzip" nil nil nil "-d" tmpdir file)
-
+    (dolist (file (f-files tmpdir))
+      (if (equal "fb2" (f-ext file))
+	  (setq fb2-file file)))
+    (if (not file)
+	(user-error "Archive %s don't contain .fb2 file" file))
     (with-temp-buffer
-      (insert-file-contents (f-join tmpdir (f-base file)))
+      (insert-file-contents fb2-file)
       (setq parsed (buffer-string)))
     (f-delete tmpdir 't)
     parsed))
