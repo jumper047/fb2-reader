@@ -348,7 +348,7 @@ It should be rendered when propertized text will be inserted into buffer."
 (defun fb2-reader--extract-image-data (book attributes &optional tags)
   "Parse image ATTRIBUTES and return image related data.
 List of type string, binary data string, and tags will be returned.
-BOOK is whole book's xml tree. TAGS are list of fb2 tags."
+BOOK is whole book's xml tree.  TAGS are list of fb2 tags."
   (when-let* ((id (replace-regexp-in-string "#" "" (cdr (car attributes))))
 	      (binary (fb2-reader--find-binary book id))
 	      (type-str (alist-get 'content-type (cl-second binary)))
@@ -359,7 +359,8 @@ BOOK is whole book's xml tree. TAGS are list of fb2 tags."
   "Generate image from DATA of type TYPE and insert it at point.
 
  Property fb2-reader-tags will be set to TAGS and appended
-to placeholder."
+to placeholder.
+ Center image if USE-PREFIX."
 
   ;; TODO: add alignment
 
@@ -421,6 +422,8 @@ to placeholder."
 ;; Parse metadata (everything inside description tag)
 
 (defun fb2-reader-parse-metadata (book item)
+  "Parse ITEM and insert as fb2 metadata.
+BOOK should contain whole book's xml tree."
   (let ((current-tag (cl-first item))
 	(attributes (cl-second item))
 	  (body (cddr item)))
@@ -777,7 +780,7 @@ header line and text for echo."
 (defun fb2-reader-load-settings (loadfn filename)
   "Open .el file from settings with function LOADFN.
 
-FILENAME located in settings directory. Returns nil if file not found.
+FILENAME located in settings directory.  Returns nil if file not found.
 LOADFN should receive only one argument - full path to file."
   (let ((fullpath (f-join fb2-reader-settings-dir
 			  filename)))
@@ -937,7 +940,7 @@ Replace already added data if presented."
      index)))
 
 (defun fb2-reader-restore-buffer (&optional buffer)
-  "Restore BUFFER from cache. Restore current if arg missed."
+  "Restore BUFFER from cache.  Restore current if arg missed."
 
   (or buffer (setq buffer (current-buffer)))
   (when (fb2-reader-cache-avail-p
@@ -976,7 +979,7 @@ Replace already added data if presented."
   "Reread current book from disk, render and display it."
   (interactive)
   (fb2-reader--assert-mode-p)
-  (when (y-or-n-p "During refresh current position may change. Proceed? ")
+  (when (y-or-n-p "During refresh current position may change.  Proceed? ")
     (message "Refreshing book asynchronously.")
     (fb2-reader--assert-mode-p)
     (fb2-reader--refresh-buffer)))
