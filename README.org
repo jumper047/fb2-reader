@@ -25,10 +25,13 @@ Plugin for Emacs to read FictionBook2 ebooks.
 * Screenshots
 
 Main window
-[[./images/window.png]]
+
+[[./images/window.png][main window]]
+
 
 Header line
 [[./images/headerline.gif]]
+
 
 Metadata screen
 [[./images/metadata.png]]
