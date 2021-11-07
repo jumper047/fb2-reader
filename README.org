@@ -22,7 +22,16 @@ Plugin for Emacs to read FictionBook2 ebooks.
 - integration with https://github.com/jumper047/librera-sync
 - rendering book in org-mode
 
+* Screenshots
+
+Main window
 [[./images/window.png]]
+
+Header line
+[[./images/headerline.gif]]
+
+Metadata screen
+[[./images/metadata.png]]
 
 * TL;DR
   Add to your config and open any .fb2 or .fb2.zip document.
