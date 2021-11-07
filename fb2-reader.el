@@ -167,9 +167,9 @@ BOOK is whole xml tree (it is needed in case)"
   (or alignment (setq alignment 'full))
   (or indent (setq indent 0))
   (if (stringp item)
-		 (insert (propertize (string-trim item)
-				     'face face
-				     'fb2-reader-tags tags))
+      (insert (propertize (string-trim item)
+			  'face face
+			  'fb2-reader-tags tags))
     (let ((current-tag (cl-first item))
 	  (attributes (cl-second item))
 	  (body (cddr item)))
@@ -190,15 +190,15 @@ BOOK is whole xml tree (it is needed in case)"
 	     ;; Disabled due new async rendering function
 	     ;; (fb2-reader--parse-image book attributes tags)
 	     (fb2-reader--pickle-image book attributes tags))
-	     
+	    
 	    ((equal current-tag 'a)
 	     (fb2-reader--parse-a-link book attributes body tags face current-tag))
 	    ((equal current-tag 'p)
 	     (fb2-reader--format-string book body tags
-					 face current-tag alignment indent))
+					face current-tag alignment indent))
 	    ((equal current-tag 'v)
 	     (fb2-reader--format-string book body tags
-					 face current-tag 'center indent))
+					face current-tag 'center indent))
 	    ((equal current-tag 'strong)
 	     (fb2-reader-parse book (cl-first body) tags (cons 'bold face)))
 	    ((equal current-tag 'emphasis)
@@ -283,7 +283,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
   "Calculate number of spaces needed to center string.
 String to center has STRLEN symbols, every symbol has HEIGHT.
 LINELEN is maximum line's length (page width)"
-   (round (/ (- linelen (* strlen height)) 2)))
+  (round (/ (- linelen (* strlen height)) 2)))
 
 (defun fb2-reader--recenter-region (begin end height)
   "Recenter region from BEGIN to END.
@@ -297,17 +297,17 @@ Every string's length in region should be less or equal fill column."
 	(goto-char (point-min))
 	(forward-line (1- linenum))
 	(setq linestr (s-trim (s-collapse-whitespace
-				       (buffer-substring
-					(point)
-					(progn
-					  (move-end-of-line 1) (point))))))
+			       (buffer-substring
+				(point)
+				(progn
+				  (move-end-of-line 1) (point))))))
 	(when (> (length linestr) 0)
 	  (setq prefix (fb2-reader--center-prefix fill-column (length linestr) height))
 	  (move-beginning-of-line 1)
 	  (kill-line)
 	  (insert (s-repeat prefix " "))
 	  (insert linestr))))))
-	
+
 (defun fb2-reader--parse-cite (book body tags face current-tag)
   "Parse BODY as cite and insert it.
 BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
@@ -317,7 +317,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
     (fb2-reader--insert-newline-maybe)
     (setq-local fill-column new-fill-column)
     (dolist (subitem body)
-    (fb2-reader-parse book subitem (cons current-tag tags) face 'full indent))
+      (fb2-reader-parse book subitem (cons current-tag tags) face 'full indent))
     (setq-local fill-column fill-column-backup)
     (fb2-reader--insert-newline-maybe)))
 
@@ -426,7 +426,7 @@ to placeholder.
 BOOK should contain whole book's xml tree."
   (let ((current-tag (cl-first item))
 	(attributes (cl-second item))
-	  (body (cddr item)))
+	(body (cddr item)))
     (cond ((member current-tag '(history annotation))
 	   (fb2-reader--parse-rich-text item))
 	  ((member current-tag '(author translator))
@@ -434,13 +434,13 @@ BOOK should contain whole book's xml tree."
 	  ((equal current-tag 'sequence)
 	   (fb2-reader--parse-sequence item))
 	  ((equal current-tag 'coverpage)
-	     (fb2-reader--parse-cover book item))
-	    (t
-	     (if  (> (length body) 1)
-		 (progn (insert (format "\n%s\n" (fb2-reader--format-symbol current-tag 'fb2-reader-info-category-face)))
-		   (dolist (subitem body)
-			  (fb2-reader-parse-metadata book subitem)))
-	       (insert (format "%s: %s\n" (fb2-reader--format-symbol current-tag 'fb2-reader-info-field-face) (if (stringp (car body)) (car body) " -"))))))))
+	   (fb2-reader--parse-cover book item))
+	  (t
+	   (if  (> (length body) 1)
+	       (progn (insert (format "\n%s\n" (fb2-reader--format-symbol current-tag 'fb2-reader-info-category-face)))
+		      (dolist (subitem body)
+			(fb2-reader-parse-metadata book subitem)))
+	     (insert (format "%s: %s\n" (fb2-reader--format-symbol current-tag 'fb2-reader-info-field-face) (if (stringp (car body)) (car body) " -"))))))))
 
 (defun fb2-reader--format-symbol (symbol face)
   "Take SYMBOL, transform it it readable string and apply FACE."
@@ -448,8 +448,8 @@ BOOK should contain whole book's xml tree."
 		     'fb2-reader-info-field)
 		    ((equal face 'fb2-reader-info-category-face)
 		     'fb2-reader-info-category))))
-  (propertize (s-capitalize (s-replace "-" " " (symbol-name symbol)))
-		   'face face prop t)))
+    (propertize (s-capitalize (s-replace "-" " " (symbol-name symbol)))
+		'face face prop t)))
 
 (defun fb2-reader--parse-person (item)
   "Parse ITEM and insert as some person's data (author or translator).
@@ -462,14 +462,14 @@ FIELD-NAME is what shold be in left of : when name is printed."
     (if name (insert (format "%s: %s\n" (fb2-reader--format-symbol (cl-first item) 'fb2-reader-info-field-face) name)))
     (dolist (field fields)
       (when (not (member (cl-first field) '(first-name middle-name nick last-name)))
-	  (insert (format "  %s: %s\n" (fb2-reader--format-symbol (cl-first field) 'fb2-reader-info-field-face) (cl-third field)))))))
+	(insert (format "  %s: %s\n" (fb2-reader--format-symbol (cl-first field) 'fb2-reader-info-field-face) (cl-third field)))))))
 
 (defun fb2-reader--parse-rich-text (item)
-"Parse ITEM as field with rich text inside."
+  "Parse ITEM as field with rich text inside."
   (let* ((field-name (s-capitalize (symbol-name (cl-first item))))
-	(fname-length (length field-name))
-	(start (point))
-	end)
+	 (fname-length (length field-name))
+	 (start (point))
+	 end)
     (fb2-reader-parse nil item nil nil 'full (+ 2 fname-length))
     (setq end (point))
     (save-excursion
@@ -496,9 +496,9 @@ FIELD-NAME is what shold be in left of : when name is printed."
 	 (type-str (cl-first imgdata))
 	 (data-str (cl-second imgdata))
 	 (covername (fb2-reader--format-symbol (cl-first item) 'fb2-reader-info-field-face)))
-  (insert (format "%s:\n" covername))
-  (fb2-reader--insert-image data-str type-str)
-  (insert "\n")))
+    (insert (format "%s:\n" covername))
+    (fb2-reader--insert-image data-str type-str)
+    (insert "\n")))
 
 ;; Links
 
@@ -512,9 +512,9 @@ FIELD-NAME is what shold be in left of : when name is printed."
       (fb2-reader-parse book subitem (cons curr-tag tags) link-face))
     (add-text-properties start (point)
 			 (list 'fb2-reader-target id
-				'follow-link t
-				 'keymap fb2-reader-link-map
-				 'mouse-face 'highlight))))
+			       'follow-link t
+			       'keymap fb2-reader-link-map
+			       'mouse-face 'highlight))))
 
 (defun fb2-reader--get-target-pos (id)
   "Get target position for link with certain ID."
@@ -530,7 +530,7 @@ FIELD-NAME is what shold be in left of : when name is printed."
 	      target-pos (point))
 	(goto-char next-change))
       (if link-found target-pos))))
-      
+
 
 (defun fb2-reader-follow-link ()
   "Follow link under point."
@@ -565,13 +565,13 @@ Founded item should have PROPERTY with certain VALUE,
 if these parameters are set."
   (if (listp item)
       (catch 'subitem (progn (dolist (subitem item)
-			(if (and
-			     (listp subitem)
-			     (equal (cl-first subitem) tag)
-			     (or (not property)
-				 (and (listp (cl-second subitem))
-				      (equal value (alist-get property (cl-second subitem))))))
-			    (throw 'subitem subitem)))
+			       (if (and
+				    (listp subitem)
+				    (equal (cl-first subitem) tag)
+				    (or (not property)
+					(and (listp (cl-second subitem))
+					     (equal value (alist-get property (cl-second subitem))))))
+				   (throw 'subitem subitem)))
 			     nil))))
 
 (defun fb2-reader--find-subitem-recursively (item &rest tags)
@@ -642,20 +642,20 @@ if these parameters are set."
 ;; Imenu support
 
 (defun fb2-reader-imenu-create-index ()
- "Create index for imenu."
- (goto-char (point-min))
+  "Create index for imenu."
+  (goto-char (point-min))
   (let (next-change plist index)
-  (while (not (eobp))
-    (setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
-			  (point-max))
-	  plist (text-properties-at (point)))
-    (when (plist-member plist 'fb2-reader-title)
-      (push (cons (s-replace "\n" " " (s-trim (s-collapse-whitespace
-					       (buffer-substring-no-properties
-						(point) next-change)))) (point))
-	    index))
-    (goto-char next-change))
-  (reverse index)))
+    (while (not (eobp))
+      (setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
+			    (point-max))
+	    plist (text-properties-at (point)))
+      (when (plist-member plist 'fb2-reader-title)
+	(push (cons (s-replace "\n" " " (s-trim (s-collapse-whitespace
+						 (buffer-substring-no-properties
+						  (point) next-change)))) (point))
+	      index))
+      (goto-char next-change))
+    (reverse index)))
 
 (defun fb2-reader-imenu-setup ()
   "Set apropriate \"imenu-create-index-function\"."
@@ -693,10 +693,10 @@ header line and text for echo."
 			(propertize displayed
 				    'face (list (cons :height (list fb2-reader-title-height)))
 				    'help-echo echo))
-			index)))
+		  index)))
 	(goto-char next-change))
       (reverse index))))
-   
+
 (defun fb2-reader-toc-bisect (toc pos)
   "Get TOC entry nearest to POS with bisect algorithm."
   (let* ((first (caar toc))
@@ -706,10 +706,10 @@ header line and text for echo."
     (if (<= toc-length 2)
 	(if (> pos last)
 	    (cadr toc)
-	(car toc))
+	  (car toc))
       (if (< pos mid)
 	  (fb2-reader-toc-bisect (butlast toc (1- (- toc-length (/ toc-length 2))))
-		  pos)
+				 pos)
 	(fb2-reader-toc-bisect (seq-drop toc (/ toc-length 2)) pos)))))
 
 (defun fb2-reader-header-line-text ()
@@ -813,7 +813,7 @@ NUMBER's sign determines search direction."
       ;; not inside tag because first position in that case will be right
       ;; after tag which is inconvinient.
       (unless (plist-member (text-properties-at (point)) propname)
-	   (setq number (if (not fwd) (1- number) number)))
+	(setq number (if (not fwd) (1- number) number)))
       (while (and  (not (eq 0 number)) (not (funcall obp)))
 	;; If we already inside title, skip it and go to next one
 	(unless (plist-member (text-properties-at (point)) propname)
@@ -872,11 +872,11 @@ NUMBER's sign determines search direction."
   "Serialize given cache INDEX and save it to FILE."
   
   (with-temp-file file
-        (set-buffer-file-coding-system 'utf-8)
-	(insert ";; fb2-reader.el -- read fb2 books  ")
-	(insert "file contains cache index, don't edit.\n")
-	(insert (prin1-to-string index))
-	(insert "\n")))
+    (set-buffer-file-coding-system 'utf-8)
+    (insert ";; fb2-reader.el -- read fb2 books  ")
+    (insert "file contains cache index, don't edit.\n")
+    (insert (prin1-to-string index))
+    (insert "\n")))
 
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
   "Check if cache for FILE available.
@@ -946,19 +946,19 @@ Replace already added data if presented."
 	 (buffer-local-value 'fb2-reader-file-name buffer) 't)
     (let ((inhibit-null-byte-detection t))
       (with-current-buffer buffer
-  (setq buffer-read-only 't)
-  (set-buffer-modified-p nil)
-  (setq buffer-read-only nil)
-  (erase-buffer)
-  (set-buffer-file-coding-system 'utf-8)
-  (insert (fb2-reader-get-cache fb2-reader-file-name))
-  (if fb2-reader-show-images
-      (fb2-reader-restore-images))
-  (if fb2-reader-restore-position
-      (fb2-reader-restore-pos)
-    (goto-char (point-min)))
-  (setq buffer-read-only nil)
-  (set-buffer-modified-p nil)))))
+	(setq buffer-read-only 't)
+	(set-buffer-modified-p nil)
+	(setq buffer-read-only nil)
+	(erase-buffer)
+	(set-buffer-file-coding-system 'utf-8)
+	(insert (fb2-reader-get-cache fb2-reader-file-name))
+	(if fb2-reader-show-images
+	    (fb2-reader-restore-images))
+	(if fb2-reader-restore-position
+	    (fb2-reader-restore-pos)
+	  (goto-char (point-min)))
+	(setq buffer-read-only nil)
+	(set-buffer-modified-p nil)))))
 
 (defun fb2-reader--refresh-buffer (&optional buffer)
   "Rerender book opened in BUFFER."
@@ -1029,7 +1029,7 @@ Replace already added data if presented."
 
   (or buffer (setq buffer (current-buffer)))
   (let* ((filename (buffer-local-value 'fb2-reader-file-name buffer))
-	      (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
+	 (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
     (with-current-buffer buffer (goto-char (or pos (point-min))))))
 
 
@@ -1147,19 +1147,19 @@ Book name should be the same as archive except .zip extension."
 
 (defvar fb2-reader-mode-map
   (let ((map (make-sparse-keymap)))
-  (define-key map (kbd "n") 'fb2-reader-forward-visible-link)
-  (define-key map (kbd "]") 'fb2-reader-forward-chapter)
-  (define-key map (kbd "p") 'fb2-reader-backward-visible-link)
-  (define-key map (kbd "[") 'fb2-reader-backward-chapter)
-  (define-key map (kbd "l") 'fb2-reader-link-back)
-  (define-key map (kbd "B") 'fb2-reader-link-back)
-  (define-key map (kbd "r") 'fb2-reader-link-forward)
-  (define-key map (kbd "N") 'fb2-reader-link-forward)
-  (define-key map (kbd "g") 'fb2-reader-refresh)
-  (define-key map (kbd "v") 'fb2-reader-show-xml)
-  (define-key map (kbd "i") 'fb2-reader-show-info)
-  (define-key map (kbd "j") 'imenu)
-  map))
+    (define-key map (kbd "n") 'fb2-reader-forward-visible-link)
+    (define-key map (kbd "]") 'fb2-reader-forward-chapter)
+    (define-key map (kbd "p") 'fb2-reader-backward-visible-link)
+    (define-key map (kbd "[") 'fb2-reader-backward-chapter)
+    (define-key map (kbd "l") 'fb2-reader-link-back)
+    (define-key map (kbd "B") 'fb2-reader-link-back)
+    (define-key map (kbd "r") 'fb2-reader-link-forward)
+    (define-key map (kbd "N") 'fb2-reader-link-forward)
+    (define-key map (kbd "g") 'fb2-reader-refresh)
+    (define-key map (kbd "v") 'fb2-reader-show-xml)
+    (define-key map (kbd "i") 'fb2-reader-show-info)
+    (define-key map (kbd "j") 'imenu)
+    map))
 
 
 ;;;###autoload
