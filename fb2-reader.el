@@ -425,7 +425,7 @@ to placeholder.
   "Parse ITEM and insert as fb2 metadata.
 BOOK should contain whole book's xml tree."
   (let ((current-tag (cl-first item))
-	(attributes (cl-second item))
+	;; (attributes (cl-second item))
 	(body (cddr item)))
     (cond ((member current-tag '(history annotation))
 	   (fb2-reader--parse-rich-text item))
@@ -699,7 +699,7 @@ header line and text for echo."
 
 (defun fb2-reader-toc-bisect (toc pos)
   "Get TOC entry nearest to POS with bisect algorithm."
-  (let* ((first (caar toc))
+  (let* (;(first (caar toc))
 	 (last (caar (last toc)))
 	 (toc-length (length toc))
 	 (mid (car (nth (/ toc-length 2) toc))))
