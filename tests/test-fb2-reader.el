@@ -4,7 +4,6 @@
 (require 'buttercup)
 (require 'fb2-reader)
 
-(load (expand-file-name "fb2-reader.el" default-directory))
 (describe "Dummy test for fb2 parser"
 	  :var (fb2-content)
 	  (it "just tests if parser works without errors"
