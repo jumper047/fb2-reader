@@ -1050,6 +1050,88 @@ Book name should be the same as archive except .zip extension."
       (goto-char (point-min)))))
 
 
+;; TOC outline
+
+(define-button-type 'fb2-reader-outline
+  'face nil
+  'keymap nil)
+
+(defvar fb2-reader-outline-fb2-buffer nil
+  "In outline this var holds name of the fb2-reader buffer.")
+
+(defcustom fb2-reader-outline-buffer-indent 2
+  "Indentation for each level in outline buffer."
+  :type 'integer
+  :group 'fb2-reader)
+
+(defun fb2-reader-create-outline-data ()
+  (save-excursion
+    (goto-char (point-min))
+    (let (start next-change plist displayed echo entry index)
+      (while (not (eobp))
+	(setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
+			      (point-max))
+	      plist (text-properties-at (point)))
+	(when (plist-member plist 'fb2-reader-title)
+	  (setq title (s-trim (s-collapse-whitespace
+			       (buffer-substring-no-properties (point) next-change))))
+	  (push (list title (point) 1) index))
+	(goto-char next-change))
+      (reverse index))))
+
+(defun fb2-reader-insert-toc-outline (toc-data)
+  (dolist (toc-item toc-data)
+    (let ((title (cl-first toc-item))
+	  (point (cl-second toc-item))
+	  (depth (cl-third toc-item)))
+      (insert-text-button
+       (concat
+	(make-string (* (1- depth) fb2-reader-outline-buffer-indent) ?\s)
+	title)
+       'type 'fb2-reader-outline
+       'fb2-reader-outline-pos point)
+      (newline))))
+
+(defun fb2-reader-outline-follow-link ()
+  (interactive)
+  (let ((pos (fb2-reader-outline-get-pos)))
+    (unless pos
+      (user-error "There is no destination at point"))
+    (select-window fb2-reader-outline-fb2-buffer)))
+
+(defun fb2-reader-outline-get-pos ()
+  (let ((button (or (button-at (point))
+                    (button-at (1- (point))))))
+    (and button
+         (button-get button
+                     'fb2-reader-outline-pos))))
+
+
+(define-derived-mode fb2-reader-outline-mode outline-mode "FB2 Outline"
+  ""
+  (setq-local outline-regexp "\\( *\\).")
+  (setq-local outline-level
+              (lambda nil (1+ (/ (length (match-string 1))
+                                 pdf-outline-buffer-indent))))
+
+  (toggle-truncate-lines 1)
+  (setq buffer-read-only t)
+  (when (> (count-lines 1 (point-max))
+           (* 1.5 (frame-height)))
+    (hide-sublevels 1)))
+
+(defun fb2-reader-show-toc ()
+  (interactive)
+  ;; assert mode
+  (let* ((fb2-buffer (current-buffer))
+	 (fb2-toc (fb2-reader-create-outline-data))
+	 (bname "*Outline*")
+	 (buffer (get-buffer-create bname)))
+    ;; try to create toc data
+    (with-current-buffer buffer
+      (fb2-reader-insert-toc-outline fb2-toc))))
+
+
 ;; Metadata buffer
 
 (defun fb2-reader-show-info ()
