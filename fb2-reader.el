@@ -155,6 +155,8 @@
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-header-line-text))))
 
+(defvar display-line-numbers-mode)
+
 ;; Fb2 parsing
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
@@ -1116,6 +1118,27 @@ Book name should be the same as archive except .zip extension."
 					;and fill column should be more than it.
   (buffer-disable-undo))
 
+;; display-line-numbers-mode workaround
+
+(defun fb2-reader-enable-dlnm-workaround ()
+  "Enable workaround for \"display-line-numbers-mode\"."
+  (add-hook 'post-command-hook #'fb2-reader-mode-correct-page-width nil t))
+
+(defun fb2-reader-disable-dlnm-workaround ()
+  "Disable workaround for \"display-line-numbers-mode\"."
+  (remove-hook 'post-command-hook #'fb2-reader-mode-correct-page-width t)
+  (setq fill-column fb2-reader-page-width))
+
+(defun fb2-reader-mode-correct-page-width ()
+  "Adjust current page width to \"fb2-reader-page-width\".
+Adjustance needed when display-line-numbers-mode activated
+and overall width of the page exceeds defined width."
+  (if display-line-numbers-mode
+      (let ((target-width (+ 2 (line-number-display-width) fb2-reader-page-width)))
+	(unless (eq fill-column target-width)
+	  (setq fill-column target-width)))
+    (fb2-reader-disable-dlnm-workaround)))
+
 
 (defvar fb2-reader-mode-map
   (let ((map (make-sparse-keymap)))
@@ -1149,6 +1172,7 @@ Book name should be the same as archive except .zip extension."
   (add-hook 'quit-window-hook #'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
+  (add-hook 'display-line-numbers-mode-hook #'fb2-reader-enable-dlnm-workaround)
   (fb2-reader-ensure-settingsdir)
   (erase-buffer)
   (let ((bufname (buffer-name))
