@@ -845,11 +845,18 @@ NUMBER's sign determines search direction."
 (defun fb2-reader-cache-avail-p (file &optional actual-only)
   "Check if cache for FILE available.
 
-If ACTUAL-ONLY return 't if cache is existed and actual."
+If ACTUAL-ONLY return 't if cache is existed and actual and
+current page width is the same as rendered one.
+
+Because of changed cache index entry format cache will be
+treated as invalid if third element, page-width, is not
+presented."
   
-  (when-let ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal)))
+  (when-let* ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal))
+	      (modified-time (cl-first idx-entry))
+	      (page-width (cl-third idx-entry)))
     (if actual-only
-	(equal (car idx-entry)
+	(equal modified-time
 	       (file-attribute-modification-time
 		(file-attributes file)))
       't)))
@@ -871,22 +878,23 @@ If ACTUAL-ONLY return 't if cache is existed and actual."
 Replace already added data if presented."
 
   (fb2-reader-remove-from-cache filename)
-  (let ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
-	(cache-filename (f-join fb2-reader-settings-dir
-				(fb2-reader-gen-cache-file-name filename)))
-	(index (fb2-reader-cache-index)))
+  (let* ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
+	 (cache-filename (f-join fb2-reader-settings-dir
+				 (fb2-reader-gen-cache-file-name filename)))
+	 (index (fb2-reader-cache-index))
+	 (index-entry (list
+		       fb2-reader-file-name
+		       (file-attribute-modification-time
+			(file-attributes fb2-reader-file-name))
+ 		       cache-filename
+		       fb2-reader-page-width)))
     (with-temp-file cache-filename
       (set-buffer-file-coding-system 'utf-8)
       (insert ";; fb2-reader.el -- read fb2 books  ")
       (insert "file contains fb2-reader book cache, don't edit.\n")
       (insert "\n")
       (insert (prin1-to-string data)))
-    
-    (push (list fb2-reader-file-name
-		(file-attribute-modification-time
-		 (file-attributes fb2-reader-file-name))
- 		cache-filename)
-	  index)
+    (push index-entry index)
     (fb2-reader-save-cache-index idx-filename (-take fb2-reader-max-in-cache index))))
 
 
