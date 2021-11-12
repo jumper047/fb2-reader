@@ -716,7 +716,9 @@ header line and text for echo."
 
 (defun fb2-reader-header-line-text ()
   "Get text for header line."
-  (cl-second (fb2-reader-toc-bisect fb2-reader-header-line-toc (window-start))))
+  (concat  (if display-line-numbers-mode
+	       (s-repeat (+ 2 (line-number-display-width)) " "))
+	   (cl-second (fb2-reader-toc-bisect fb2-reader-header-line-toc (window-start)))))
 
 (define-minor-mode fb2-reader-header-line-mode
   "Toggle header line with current chapter"
@@ -1123,7 +1125,8 @@ Book name should be the same as archive except .zip extension."
 
 (defun fb2-reader-enable-dlnm-workaround ()
   "Enable workaround for \"display-line-numbers-mode\"."
-  (add-hook 'post-command-hook #'fb2-reader-mode-correct-page-width nil t))
+  (add-hook 'post-command-hook #'fb2-reader-mode-correct-page-width nil t)
+  (fb2-reader-mode-correct-page-width))
 
 (defun fb2-reader-disable-dlnm-workaround ()
   "Disable workaround for \"display-line-numbers-mode\"."
@@ -1137,7 +1140,11 @@ and overall width of the page exceeds defined width."
   (if display-line-numbers-mode
       (let ((target-width (+ 2 (line-number-display-width) fb2-reader-page-width)))
 	(unless (eq fill-column target-width)
-	  (setq fill-column target-width)))
+	  (setq fill-column target-width)
+	  ;; To apply changes immediately:
+	  (when visual-fill-column-mode
+	      (visual-fill-column-adjust)
+	      (redisplay 't))))
     (fb2-reader-disable-dlnm-workaround)))
 
 
@@ -1173,7 +1180,7 @@ and overall width of the page exceeds defined width."
   (add-hook 'quit-window-hook #'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
-  (add-hook 'display-line-numbers-mode-hook #'fb2-reader-enable-dlnm-workaround)
+  (add-hook 'display-line-numbers-mode-hook #'fb2-reader-enable-dlnm-workaround nil t)
   (fb2-reader-ensure-settingsdir)
   (erase-buffer)
   (let ((bufname (buffer-name))
