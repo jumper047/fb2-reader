@@ -949,6 +949,8 @@ Replace already added data if presented."
 				 (fb2-reader-add-to-cache fb2-reader-file-name
 							  (read (concat "#" result)))
 				 (fb2-reader-restore-buffer)
+				 (if fb2-reader-title-in-headerline
+				     (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))
 				 (message "Document %s reloaded" fb2-reader-file-name))))))
 
 (defun fb2-reader-refresh ()
@@ -1200,7 +1202,10 @@ and overall width of the page exceeds defined width."
 				   (fb2-reader-add-to-cache fb2-reader-file-name
 							    (read (concat "#" result)))
 				   (fb2-reader-restore-buffer)
-				   (kill-local-variable 'cursor-type)))))
+				   (kill-local-variable 'cursor-type) ; can't remember why this string is here..
+				   (if fb2-reader-title-in-headerline
+				       (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))))))
+
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
