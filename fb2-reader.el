@@ -858,9 +858,10 @@ presented."
 	      (modified-time (cl-first idx-entry))
 	      (page-width (cl-third idx-entry)))
     (if actual-only
-	(equal modified-time
-	       (file-attribute-modification-time
-		(file-attributes file)))
+	(and (equal modified-time
+		    (file-attribute-modification-time
+		     (file-attributes file)))
+	     (equal page-width fb2-reader-page-width))
       't)))
 
 
