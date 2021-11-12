@@ -1056,7 +1056,7 @@ Book name should be the same as archive except .zip extension."
   'face nil
   'keymap nil)
 
-(defvar fb2-reader-outline-fb2-buffer nil
+(defvar-local fb2-reader-outline-fb2-buffer nil
   "In outline this var holds name of the fb2-reader buffer.")
 
 (defcustom fb2-reader-outline-buffer-indent 2
@@ -1064,18 +1064,32 @@ Book name should be the same as archive except .zip extension."
   :type 'integer
   :group 'fb2-reader)
 
+(defvar fb2-reader-outline-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "RET") 'fb2-reader-outline-follow-link)
+    map))
+
+(defun fb2-reader-outline-get-doc-window ())
+
 (defun fb2-reader-create-outline-data ()
   (save-excursion
     (goto-char (point-min))
-    (let (start next-change plist displayed echo entry index)
+    (let (start next-change plist displayed echo entry index section-hack tags)
       (while (not (eobp))
 	(setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
 			      (point-max))
 	      plist (text-properties-at (point)))
 	(when (plist-member plist 'fb2-reader-title)
 	  (setq title (s-trim (s-collapse-whitespace
-			       (buffer-substring-no-properties (point) next-change))))
-	  (push (list title (point) 1) index))
+			       (buffer-substring-no-properties (point) next-change)))
+		;; This is kinda hack because in future I'll add fb-r-tags
+		;; to spaces too, so I'll take this property from plist
+		section-hack (or (if (plist-member plist 'fb2-reader-tags) (point))
+				 (next-single-property-change (point) 'fb2-reader-tags)
+				 (point-max))
+		tags (get-text-property section-hack 'fb2-reader-tags)
+		indent (--count (equal it 'section) tags))
+	  (push (list title (point) indent) index))
 	(goto-char next-change))
       (reverse index))))
 
@@ -1094,21 +1108,23 @@ Book name should be the same as archive except .zip extension."
 
 (defun fb2-reader-outline-follow-link ()
   (interactive)
-  (let ((pos (fb2-reader-outline-get-pos)))
-    (unless pos
+  (let ((target (fb2-reader-toc-target-at-pos)))
+    (unless target
       (user-error "There is no destination at point"))
-    (select-window fb2-reader-outline-fb2-buffer)))
+    (select-window (display-buffer fb2-reader-outline-fb2-buffer))
+    (goto-char target)))
 
-(defun fb2-reader-outline-get-pos ()
-  (let ((button (or (button-at (point))
-                    (button-at (1- (point))))))
+(defun fb2-reader-toc-target-at-pos (&optional pos)
+  (unless pos (setq pos (point)))
+  (let ((button (or (button-at pos)
+                    (button-at (1- pos)))))
     (and button
          (button-get button
                      'fb2-reader-outline-pos))))
 
 
 (define-derived-mode fb2-reader-outline-mode outline-mode "FB2 Outline"
-  ""
+  "\\{fb2-reader-outline-mode-map}"
   (setq-local outline-regexp "\\( *\\).")
   (setq-local outline-level
               (lambda nil (1+ (/ (length (match-string 1))
@@ -1120,17 +1136,31 @@ Book name should be the same as archive except .zip extension."
            (* 1.5 (frame-height)))
     (hide-sublevels 1)))
 
+(defun fb2-reader--toc-buffer-name (&optional fb2-buffer)
+  (format "Outline: %s" (buffer-name fb2-buffer)))
+
+(defun fb2-reader--create-toc-buffer (&optional fb2-buffer)
+  (unless fb2-buffer (setq fb2-buffer (current-buffer)))
+  (let* ((fb2-toc (fb2-reader-create-outline-data))
+	 (buffer (get-buffer-create (fb2-reader--toc-buffer-name))))
+    ;; try to create toc data
+    (with-current-buffer buffer
+      (toggle-truncate-lines 1)
+      (fb2-reader-insert-toc-outline fb2-toc)
+      (fb2-reader-outline-mode)
+      (setq fb2-reader-outline-fb2-buffer fb2-buffer)
+      (current-buffer))))
+
+(defun fb2-reader-get-toc-buffer (&optional fb2-buffer)
+  (or fb2-buffer (setq fb2-buffer (current-buffer)))
+  (let ((buffer (get-buffer (fb2-reader--toc-buffer-name fb2-buffer))))
+    (or buffer (fb2-reader--create-toc-buffer fb2-buffer))))
+
 (defun fb2-reader-show-toc ()
   (interactive)
   ;; assert mode
-  (let* ((fb2-buffer (current-buffer))
-	 (fb2-toc (fb2-reader-create-outline-data))
-	 (bname "*Outline*")
-	 (buffer (get-buffer-create bname)))
-    ;; try to create toc data
-    (with-current-buffer buffer
-      (fb2-reader-insert-toc-outline fb2-toc))))
-
+  (let ((toc-buffer (fb2-reader-get-toc-buffer)))
+    (display-buffer toc-buffer)))
 
 ;; Metadata buffer
 
