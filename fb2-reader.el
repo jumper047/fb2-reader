@@ -1179,8 +1179,8 @@ Book name should be the same as archive except .zip extension."
     (dotimes (i 10)
       (define-key map (vector (+ i ?0)) 'digit-argument))
     (define-key map "-" 'negative-argument)
-    (define-key map (kbd "p") 'previous-line)
-    (define-key map (kbd "n") 'next-line)
+    (define-key map (kbd "p") 'outline-previous-heading)
+    (define-key map (kbd "n") 'outline-next-heading)
     (define-key map (kbd "b") 'outline-backward-same-level)
     (define-key map (kbd "d") 'hide-subtree)
     (define-key map (kbd "a") 'show-all)
@@ -1209,7 +1209,9 @@ Book name should be the same as archive except .zip extension."
               (lambda nil (1+ (/ (length (match-string 1))
                                  fb2-reader-toc-indent))))
   (toggle-truncate-lines 1)
-  (setq buffer-read-only t))
+  (setq buffer-read-only t
+	cursor-type nil)
+  (hl-line-mode 1))
 
 (defun fb2-reader-toc-buffer-name (&optional fb2-buffer)
   "Get toc buffer name for FB2-BUFFER."
