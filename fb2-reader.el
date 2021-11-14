@@ -1327,6 +1327,7 @@ Display window if it is hidden and FORCE-DISPLAY is 't"
     (define-key map (kbd "p") 'fb2-reader-info-backward-field)
     (define-key map (kbd "N") 'fb2-reader-info-forward-category)
     (define-key map (kbd "P") 'fb2-reader-info-backward-category)
+    (define-key map (kbd "q") 'quit-window)
     map))
 
 (define-derived-mode fb2-reader-info-mode special-mode "FB2 Info"
