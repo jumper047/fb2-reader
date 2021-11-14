@@ -1115,13 +1115,17 @@ Book name should be the same as archive except .zip extension."
     (let ((title (cl-first toc-item))
 	  (point (cl-second toc-item))
 	  (depth (cl-third toc-item)))
-      (insert-text-button
-       (concat
-	(make-string (* (1- depth) fb2-reader-toc-indent) ?\s)
-	title)
-       'type 'fb2-reader-toc
-       'fb2-reader-outline-pos point)
-      (newline))))
+      ;; I found a book with title containing only newline
+      ;; without a text. It broke button creation, so I'll
+      ;; get rid of definitely wrong titles.
+      (when (and (> (length title) 0))
+	(insert-text-button
+	 (concat
+	  (make-string (* (max 0 (1- depth)) fb2-reader-toc-indent) ?\s)
+	  title)
+	 'type 'fb2-reader-toc
+	 'fb2-reader-outline-pos point)
+	(newline)))))
 
 (defun fb2-reader-toc-follow-link ()
   "Follow link under point in toc buffer."
