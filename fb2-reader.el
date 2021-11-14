@@ -1084,30 +1084,30 @@ Book name should be the same as archive except .zip extension."
   "Get data needed for building toc from FB2-BUFFER."
   (unless fb2-buffer (setq fb2-buffer (current-buffer)))
   (with-current-buffer fb2-buffer
-      (save-excursion
-	(goto-char (point-min))
-	(let (start next-change plist displayed echo entry index section-hack tags)
-	  (while (not (eobp))
-	    (setq next-change (or (next-single-property-change
-				   (point) 'fb2-reader-title)
-				  (point-max))
-		  plist (text-properties-at (point)))
-	    (when (plist-member plist 'fb2-reader-title)
-	      (setq title (s-trim (s-collapse-whitespace
-				   (buffer-substring-no-properties
-				    (point) next-change)))
-		    ;; This is kinda hack because in future I'll add fb-r-tags
-		    ;; to spaces too, so I'll take this property from plist
-		    section-hack (or (if (plist-member plist 'fb2-reader-tags)
-					 (point))
-				     (next-single-property-change (point)
-								  'fb2-reader-tags)
-				     (point-max))
-		    tags (get-text-property section-hack 'fb2-reader-tags)
-		    indent (--count (equal it 'section) tags))
-	      (push (list title (point) indent) index))
-	    (goto-char next-change))
-	  (reverse index)))))
+    (save-excursion
+      (goto-char (point-min))
+      (let (start next-change plist displayed echo entry index section-hack tags)
+	(while (not (eobp))
+	  (setq next-change (or (next-single-property-change
+				 (point) 'fb2-reader-title)
+				(point-max))
+		plist (text-properties-at (point)))
+	  (when (plist-member plist 'fb2-reader-title)
+	    (setq title (s-trim (s-collapse-whitespace
+				 (buffer-substring-no-properties
+				  (point) next-change)))
+		  ;; This is kinda hack because in future I'll add fb-r-tags
+		  ;; to spaces too, so I'll take this property from plist
+		  section-hack (or (if (plist-member plist 'fb2-reader-tags)
+				       (point))
+				   (next-single-property-change (point)
+								'fb2-reader-tags)
+				   (point-max))
+		  tags (get-text-property section-hack 'fb2-reader-tags)
+		  indent (--count (equal it 'section) tags))
+	    (push (list title (point) indent) index))
+	  (goto-char next-change))
+	(reverse index)))))
 
 (defun fb2-reader-toc-insert-outline (toc-data)
   "Insert outline with  table of content from TOC-DATA."
