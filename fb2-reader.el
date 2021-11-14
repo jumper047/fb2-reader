@@ -1263,7 +1263,7 @@ Display window if it is hidden and FORCE-DISPLAY is 't"
 	(select-window win))))
 
 (defun fb2-reader-toc-quit (&optional kill)
-  "Quit TOC window. Kill it if KILL."
+  "Quit TOC window.  Kill it if KILL."
   (interactive "P")
   (fb2-reader-toc-assert-mode-p)
   (let ((win (selected-window)))
