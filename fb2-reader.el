@@ -116,6 +116,11 @@
   :type 'integer
   :group 'fb2-reader)
 
+(defcustom fb2-reader-toc-indent 2
+  "Indentation for each level in outline buffer."
+  :type 'integer
+  :group 'fb2-reader)
+
 (defface fb2-reader-info-field-face
   '((t (:weight bold)))
   "Face for field name in book info buffer."
@@ -150,6 +155,12 @@
 
 (defvar-local fb2-reader-header-line-toc nil
   "List of chapters for header line.")
+
+(defvar-local fb2-reader-toc-fb2-buffer nil
+  "In outline this var holds name of the fb2-reader buffer.")
+
+(defvar-local fb2-reader-toc-fb2-window nil
+  "In outline this var holds name of the fb2-reader window.")
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
@@ -634,10 +645,15 @@ if these parameters are set."
    callback))
 
 ;; Utilities
-(defun fb2-reader--assert-mode-p ()
+(defun fb2-reader-assert-mode-p ()
   "Check is current buffer is suitable to run command and throw error otherwise."
-  (unless fb2-reader-file-name
+  (unless (eq major-mode 'fb2-reader-mode)
     (user-error "Command suitable only for fb2-reader buffers")))
+
+(defun fb2-reader-toc-assert-mode-p ()
+  "Check is current buffer is suitable to run command and throw error otherwise."
+  (unless (eq major-mode 'fb2-reader-toc-mode)
+    (user-error "Command suitable only for fb2-reader-toc buffers")))
 
 ;; Imenu support
 
@@ -941,10 +957,10 @@ Replace already added data if presented."
 (defun fb2-reader-refresh ()
   "Reread current book from disk, render and display it."
   (interactive)
-  (fb2-reader--assert-mode-p)
+  (fb2-reader-assert-mode-p)
   (when (y-or-n-p "During refresh current position may change.  Proceed? ")
     (message "Refreshing book asynchronously.")
-    (fb2-reader--assert-mode-p)
+    (fb2-reader-assert-mode-p)
     (fb2-reader--refresh-buffer)))
 
 (defun fb2-reader-gen-cache-file-name (filepath)
@@ -987,6 +1003,18 @@ Replace already added data if presented."
   (dolist (buffer (buffer-list))
     (if (eq (buffer-local-value 'major-mode buffer) 'fb2-reader-mode)
 	(fb2-reader-save-pos buffer))))
+
+(defun fb2-reader-clean-up ()
+  "Clean up things before fb2 buffer quit."
+  (fb2-reader-save-pos)
+  (let* ((info-buffer (get-buffer (fb2-reader-info-buffer-name)))
+	 (info-window (if info-buffer (get-buffer-window info-buffer)))
+	 (toc-buffer (get-buffer (fb2-reader-toc-buffer-name)))
+	 (toc-window (if info-buffer (get-buffer-window toc-buffer))))
+    (if info-window (quit-window 't info-window)
+      (if info-buffer (kill-buffer info-buffer)))
+    (if toc-window (quit-window 't toc-window)
+      (if toc-buffer (kill-buffer toc-buffer)))))
 
 (defun fb2-reader-restore-pos (&optional buffer)
   "Restore position in current buffer or BUFFER."
@@ -1037,7 +1065,7 @@ Book name should be the same as archive except .zip extension."
 (defun fb2-reader-show-xml ()
   "Open current book's raw xml."
   (interactive)
-  (fb2-reader--assert-mode-p)
+  (fb2-reader-assert-mode-p)
   (let* ((bname (format "*XML: %s*" (buffer-name)))
 	 (fname fb2-reader-file-name)
 	 (buffer-exist-p (get-buffer bname))
@@ -1052,69 +1080,77 @@ Book name should be the same as archive except .zip extension."
 
 ;; TOC outline
 
-(define-button-type 'fb2-reader-outline
-  'face nil
-  'keymap nil)
+(defun fb2-reader-create-toc-data (&optional fb2-buffer)
+  "Get data needed for building toc from FB2-BUFFER."
+  (unless fb2-buffer (setq fb2-buffer (current-buffer)))
+  (with-current-buffer fb2-buffer
+      (save-excursion
+	(goto-char (point-min))
+	(let (start next-change plist displayed echo entry index section-hack tags)
+	  (while (not (eobp))
+	    (setq next-change (or (next-single-property-change
+				   (point) 'fb2-reader-title)
+				  (point-max))
+		  plist (text-properties-at (point)))
+	    (when (plist-member plist 'fb2-reader-title)
+	      (setq title (s-trim (s-collapse-whitespace
+				   (buffer-substring-no-properties
+				    (point) next-change)))
+		    ;; This is kinda hack because in future I'll add fb-r-tags
+		    ;; to spaces too, so I'll take this property from plist
+		    section-hack (or (if (plist-member plist 'fb2-reader-tags)
+					 (point))
+				     (next-single-property-change (point)
+								  'fb2-reader-tags)
+				     (point-max))
+		    tags (get-text-property section-hack 'fb2-reader-tags)
+		    indent (--count (equal it 'section) tags))
+	      (push (list title (point) indent) index))
+	    (goto-char next-change))
+	  (reverse index)))))
 
-(defvar-local fb2-reader-outline-fb2-buffer nil
-  "In outline this var holds name of the fb2-reader buffer.")
-
-(defcustom fb2-reader-outline-buffer-indent 2
-  "Indentation for each level in outline buffer."
-  :type 'integer
-  :group 'fb2-reader)
-
-(defvar fb2-reader-outline-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") 'fb2-reader-outline-follow-link)
-    map))
-
-(defun fb2-reader-outline-get-doc-window ())
-
-(defun fb2-reader-create-outline-data ()
-  (save-excursion
-    (goto-char (point-min))
-    (let (start next-change plist displayed echo entry index section-hack tags)
-      (while (not (eobp))
-	(setq next-change (or (next-single-property-change (point) 'fb2-reader-title)
-			      (point-max))
-	      plist (text-properties-at (point)))
-	(when (plist-member plist 'fb2-reader-title)
-	  (setq title (s-trim (s-collapse-whitespace
-			       (buffer-substring-no-properties (point) next-change)))
-		;; This is kinda hack because in future I'll add fb-r-tags
-		;; to spaces too, so I'll take this property from plist
-		section-hack (or (if (plist-member plist 'fb2-reader-tags) (point))
-				 (next-single-property-change (point) 'fb2-reader-tags)
-				 (point-max))
-		tags (get-text-property section-hack 'fb2-reader-tags)
-		indent (--count (equal it 'section) tags))
-	  (push (list title (point) indent) index))
-	(goto-char next-change))
-      (reverse index))))
-
-(defun fb2-reader-insert-toc-outline (toc-data)
+(defun fb2-reader-toc-insert-outline (toc-data)
+  "Insert outline with  table of content from TOC-DATA."
   (dolist (toc-item toc-data)
     (let ((title (cl-first toc-item))
 	  (point (cl-second toc-item))
 	  (depth (cl-third toc-item)))
       (insert-text-button
        (concat
-	(make-string (* (1- depth) fb2-reader-outline-buffer-indent) ?\s)
+	(make-string (* (1- depth) fb2-reader-toc-indent) ?\s)
 	title)
-       'type 'fb2-reader-outline
+       'type 'fb2-reader-toc
        'fb2-reader-outline-pos point)
       (newline))))
 
-(defun fb2-reader-outline-follow-link ()
+(defun fb2-reader-toc-follow-link ()
+  "Follow link under point in toc buffer."
   (interactive)
+  (fb2-reader-toc-assert-mode-p)
   (let ((target (fb2-reader-toc-target-at-pos)))
     (unless target
       (user-error "There is no destination at point"))
-    (select-window (display-buffer fb2-reader-outline-fb2-buffer))
+    (select-window (fb2-reader-toc-get-fb2-window t))
     (goto-char target)))
 
+(defun fb2-reader-toc-display-link (&optional pos)
+  "Go to target at POS in fb2-reader buffer, but don't switch to it."
+  (interactive)
+  (fb2-reader-toc-assert-mode-p)
+  (unless pos (setq pos (point)))
+  (let ((target (fb2-reader-toc-target-at-pos pos)))
+    (unless target
+      (user-error "There is no destination at point"))
+    (with-selected-window (fb2-reader-toc-get-fb2-window t)
+      (goto-char target))))
+
+(defun fb2-reader-toc-mouse-display-link (event)
+  "Display link corresponding to the EVENT position."
+  (interactive "@e")
+  (fb2-reader-toc-display-link (posn-point (event-start event))))
+
 (defun fb2-reader-toc-target-at-pos (&optional pos)
+  "Get position from button at point or at POS."
   (unless pos (setq pos (point)))
   (let ((button (or (button-at pos)
                     (button-at (1- pos)))))
@@ -1122,53 +1158,132 @@ Book name should be the same as archive except .zip extension."
          (button-get button
                      'fb2-reader-outline-pos))))
 
+(defun fb2-reader-toc-goto-corresponding-line (fb2-pos)
+  "Go to line corresponding to FB2-POS in toc buffer."
+  (goto-char (point-min))
+  (while (and (not (eobp))
+	      (> fb2-pos (fb2-reader-toc-target-at-pos (point))))
+    (forward-line 1)))
 
-(define-derived-mode fb2-reader-outline-mode outline-mode "FB2 Outline"
-  "\\{fb2-reader-outline-mode-map}"
+(define-button-type 'fb2-reader-toc
+  'face nil
+  'keymap nil)
+
+(defvar fb2-reader-toc-mode-map
+  (let ((map (make-sparse-keymap)))
+    (dotimes (i 10)
+      (define-key map (vector (+ i ?0)) 'digit-argument))
+    (define-key map "-" 'negative-argument)
+    (define-key map (kbd "p") 'previous-line)
+    (define-key map (kbd "n") 'next-line)
+    (define-key map (kbd "b") 'outline-backward-same-level)
+    (define-key map (kbd "d") 'hide-subtree)
+    (define-key map (kbd "a") 'show-all)
+    (define-key map (kbd "s") 'show-subtree)
+    (define-key map (kbd "f") 'outline-forward-same-level)
+    (define-key map (kbd "u") 'pdf-outline-up-heading)
+    (define-key map (kbd "TAB") 'outline-toggle-children)
+    (define-key map (kbd "RET") 'fb2-reader-toc-follow-link)
+    (define-key map (kbd "C-o") 'fb2-reader-toc-display-link)
+    (define-key map (kbd "SPC") 'fb2-reader-toc-display-link)
+    (define-key map [mouse-1] 'fb2-reader-toc-mouse-display-link)
+    (define-key map (kbd "o") 'fb2-reader-toc-select-fb2-window)
+    (define-key map (kbd "t") 'fb2-reader-toc-select-fb2-window)
+    (define-key map (kbd "Q") 'fb2-reader-toc-quit-and-kill)
+    (define-key map (kbd "q") 'quit-window)
+    (define-key map (kbd "M-RET") 'pdf-outline-follow-link-and-quit)
+    map)
+  "Keymap used in `fb2-reader-toc-mode'.")
+
+
+(define-derived-mode fb2-reader-toc-mode outline-mode "FB2 TOC"
+  "Mode to display table of content of corresponding fb2-reader buffer.
+\\{fb2-reader-toc-mode-map}"
   (setq-local outline-regexp "\\( *\\).")
   (setq-local outline-level
               (lambda nil (1+ (/ (length (match-string 1))
-                                 pdf-outline-buffer-indent))))
-
+                                 fb2-reader-toc-indent))))
   (toggle-truncate-lines 1)
-  (setq buffer-read-only t)
-  (when (> (count-lines 1 (point-max))
-           (* 1.5 (frame-height)))
-    (hide-sublevels 1)))
+  (setq buffer-read-only t))
 
-(defun fb2-reader--toc-buffer-name (&optional fb2-buffer)
-  (format "Outline: %s" (buffer-name fb2-buffer)))
-
-(defun fb2-reader--create-toc-buffer (&optional fb2-buffer)
+(defun fb2-reader-toc-buffer-name (&optional fb2-buffer)
+  "Get toc buffer name for FB2-BUFFER."
   (unless fb2-buffer (setq fb2-buffer (current-buffer)))
-  (let* ((fb2-toc (fb2-reader-create-outline-data))
-	 (buffer (get-buffer-create (fb2-reader--toc-buffer-name))))
+  (format "*TOC: %s*" (buffer-name fb2-buffer)))
+
+(defun fb2-reader-toc-get-fb2-window (&optional force)
+  "Get fb2 window displaying corresponding buffer.
+If FORCE display it if it is hidden."
+  (let ((fb2-window (if (and (window-live-p fb2-reader-toc-fb2-window)
+			     (eq fb2-reader-toc-fb2-buffer
+				 (window-buffer fb2-reader-toc-fb2-window)))
+			fb2-reader-toc-fb2-window
+		      (or (get-buffer-window fb2-reader-toc-fb2-buffer)
+			  (and (not (null fb2-buffer))
+			       (display-buffer
+				fb2-reader-toc-fb2-buffer
+				'(nil (inhibit-same-window . t))))))))
+    (setq fb2-reader-toc-fb2-window fb2-window)))
+
+(defun fb2-reader-create-toc-buffer (&optional fb2-buffer)
+  "Create toc buffer for FB2-BUFFER."
+  (unless fb2-buffer (setq fb2-buffer (current-buffer)))
+  (let* ((fb2-window (get-buffer-window fb2-buffer))
+	 (fb2-toc (fb2-reader-create-toc-data))
+	 (buffer (get-buffer-create (fb2-reader-toc-buffer-name))))
     ;; try to create toc data
     (with-current-buffer buffer
       (toggle-truncate-lines 1)
-      (fb2-reader-insert-toc-outline fb2-toc)
-      (fb2-reader-outline-mode)
-      (setq fb2-reader-outline-fb2-buffer fb2-buffer)
+      (fb2-reader-toc-insert-outline fb2-toc)
+      (fb2-reader-toc-mode)
+      (setq fb2-reader-toc-fb2-buffer fb2-buffer
+	    fb2-reader-toc-fb2-window fb2-window)
       (current-buffer))))
 
 (defun fb2-reader-get-toc-buffer (&optional fb2-buffer)
+  "Get existing toc buffer or create new one for FB2-BUFFER."
   (or fb2-buffer (setq fb2-buffer (current-buffer)))
-  (let ((buffer (get-buffer (fb2-reader--toc-buffer-name fb2-buffer))))
-    (or buffer (fb2-reader--create-toc-buffer fb2-buffer))))
+  (let ((buffer (get-buffer (fb2-reader-toc-buffer-name fb2-buffer))))
+    (or buffer (fb2-reader-create-toc-buffer fb2-buffer))))
+
+(defun fb2-reader-toc-select-fb2-window (&optional force-display)
+  "Select fb2 buffer corresponding to current toc.
+Display window if it is hidden and FORCE-DISPLAY is 't"
+  (interactive)
+  (fb2-reader-toc-assert-mode-p)
+  (let ((win (fb2-reader-toc-get-fb2-window force-display)))
+    (if (window-live-p win)
+	(select-window win))))
+
+(defun fb2-reader-toc-quit (&optional kill)
+  "Quit TOC window. Kill it if KILL."
+  (interactive "P")
+  (fb2-reader-toc-assert-mode-p)
+  (let ((win (selected-window)))
+    (fb2-reader-toc-select-fb2-window t)
+    (quit-window kill win)))
+
+(defun fb2-reader-toc-quit-and-kill ()
+  "Quit and kill TOC window."
+  (interactive)
+  (fb2-reader-toc-quit t))
 
 (defun fb2-reader-show-toc ()
+  "Show table of content."
   (interactive)
-  ;; assert mode
-  (let ((toc-buffer (fb2-reader-get-toc-buffer)))
-    (display-buffer toc-buffer)))
+  (fb2-reader-assert-mode-p)
+  (let ((toc-buffer (fb2-reader-get-toc-buffer))
+	(fb2-pos (point)))
+    (select-window (display-buffer toc-buffer))
+    (fb2-reader-toc-goto-corresponding-line fb2-pos)))
 
 ;; Metadata buffer
 
 (defun fb2-reader-show-info ()
   "Show current book's metadata."
   (interactive)
-  (fb2-reader--assert-mode-p)
-  (let* ((bname (format "*Info: %s*" (buffer-name)))
+  (fb2-reader-assert-mode-p)
+  (let* ((bname (fb2-reader-info-buffer-name))
 	 (buffer-exist-p (get-buffer bname))
 	 (buffer (get-buffer-create bname))
 	 (book (fb2-reader-parse-file fb2-reader-file-name)))
@@ -1178,6 +1293,11 @@ Book name should be the same as archive except .zip extension."
 	(fb2-reader-parse-metadata book item))
       (goto-char (point-min))
       (fb2-reader-info-mode))))
+
+(defun fb2-reader-info-buffer-name (&optional fb2-buffer)
+  "Get info buffer name for FB2-BUFFER."
+  (unless fb2-buffer (setq fb2-buffer (current-buffer)))
+  (format "*Info: %s*" fb2-buffer))
 
 (defun fb2-reader-info-backward-category (&optional n)
   "Go N categories backward."
@@ -1234,6 +1354,8 @@ Book name should be the same as archive except .zip extension."
     (define-key map (kbd "g") 'fb2-reader-refresh)
     (define-key map (kbd "v") 'fb2-reader-show-xml)
     (define-key map (kbd "i") 'fb2-reader-show-info)
+    (define-key map (kbd "t") 'fb2-reader-show-toc)
+    (define-key map (kbd "o") 'fb2-reader-show-toc)
     (define-key map (kbd "j") 'imenu)
     map))
 
@@ -1249,7 +1371,7 @@ Book name should be the same as archive except .zip extension."
 	fill-column fb2-reader-page-width)
   (buffer-disable-undo)
   (set-visited-file-name nil t) ; disable autosaves and save questions
-  (add-hook 'kill-buffer-hook #'fb2-reader-save-pos nil t)
+  (add-hook 'kill-buffer-hook #'fb2-reader-clean-up nil t)
   (add-hook 'quit-window-hook #'fb2-reader-save-pos nil t)
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
@@ -1276,7 +1398,8 @@ Book name should be the same as archive except .zip extension."
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
-    (setq visual-fill-column-center-text 't)
+    (setq visual-fill-column-center-text 't
+	  visual-fill-column-enable-sensible-window-split 't)
     (visual-fill-column-mode)))
 
 (provide 'fb2-reader)
