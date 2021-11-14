@@ -1086,7 +1086,7 @@ Book name should be the same as archive except .zip extension."
   (with-current-buffer fb2-buffer
     (save-excursion
       (goto-char (point-min))
-      (let (start next-change plist displayed echo entry index section-hack tags)
+      (let (next-change plist index section-hack tags indent title)
 	(while (not (eobp))
 	  (setq next-change (or (next-single-property-change
 				 (point) 'fb2-reader-title)
