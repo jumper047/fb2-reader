@@ -1167,7 +1167,8 @@ Book name should be the same as archive except .zip extension."
   (goto-char (point-min))
   (while (and (not (eobp))
 	      (> fb2-pos (fb2-reader-toc-target-at-pos (point))))
-    (forward-line 1)))
+    (forward-line 1))
+  (forward-line -1))
 
 (define-button-type 'fb2-reader-toc
   'face nil
