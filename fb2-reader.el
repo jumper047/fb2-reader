@@ -1223,7 +1223,7 @@ If FORCE display it if it is hidden."
 				 (window-buffer fb2-reader-toc-fb2-window)))
 			fb2-reader-toc-fb2-window
 		      (or (get-buffer-window fb2-reader-toc-fb2-buffer)
-			  (and (not (null fb2-buffer))
+			  (and (not (null force))
 			       (display-buffer
 				fb2-reader-toc-fb2-buffer
 				'(nil (inhibit-same-window . t))))))))
