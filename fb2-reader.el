@@ -166,6 +166,9 @@
 (defvar-local fb2-reader-header-line-toc nil
   "List of chapters for header line.")
 
+(defvar-local fb2-reader-rendering-future nil
+  "Rendering future for current buffer")
+
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-header-line-text))))
@@ -962,25 +965,30 @@ Replace already added data if presented."
 	(setq buffer-read-only nil)
 	(set-buffer-modified-p nil)))))
 
-(defun fb2-reader--refresh-buffer (&optional buffer)
-  "Rerender book opened in BUFFER."
-  (setq buffer (or buffer (current-buffer)))
-  (let ((book (fb2-reader-parse-file
-	       (buffer-local-value 'fb2-reader-file-name buffer))))
+(defun fb2-reader--refresh-buffer ()
+  "Rerender book in current buffer."
+  (let ((book (fb2-reader-parse-file fb2-reader-file-name))
+	(buffer (current-buffer)))
     (fb2-reader-save-pos buffer)
-    (fb2-reader-render-async book
-			     (lambda (result)
-			       (with-current-buffer buffer
-				 (fb2-reader-add-to-cache fb2-reader-file-name
-							  (read (concat "#" result)))
-				 (fb2-reader-restore-buffer)
-				 (if fb2-reader-title-in-headerline
-				     (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))
-				 (message "Document %s reloaded" fb2-reader-file-name))))))
+    (setq fb2-reader-rendering-future
+	  (fb2-reader-render-async
+	   book
+	   (lambda (result)
+	     (with-current-buffer buffer
+	       (fb2-reader-add-to-cache fb2-reader-file-name
+					(read (concat "#" result)))
+	       (fb2-reader-restore-buffer)
+	       (if fb2-reader-title-in-headerline
+		   (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))
+	       (setq fb2-reader-rendering-future nil)
+	       (message "Document %s reloaded" fb2-reader-file-name)))))))
 
 (defun fb2-reader-refresh ()
   "Reread current book from disk, render and display it."
   (interactive)
+  (unless (or (null fb2-reader-rendering-future)
+	      (async-ready fb2-reader-rendering-future))
+    (user-error "Wait until current rendering process finished"))
   (fb2-reader--assert-mode-p)
   (when (y-or-n-p "During refresh current position may change.  Proceed? ")
     (message "Refreshing book asynchronously.")
@@ -1219,17 +1227,20 @@ and overall width of the page exceeds defined width."
       (setq-local cursor-type nil)
       (insert (propertize "Rendering in process, please wait." 'face 'fb2-reader-title))
       (fill-region (point-min) (point-max) 'center)
-      (fb2-reader-render-async book
-			       (lambda (result)
-				 (with-current-buffer bufname
-				   ;; For some reason propertized string returned from async process
-				   ;; loses hash at it's beginning.
-				   (fb2-reader-add-to-cache fb2-reader-file-name
-							    (read (concat "#" result)))
-				   (fb2-reader-restore-buffer)
-				   (kill-local-variable 'cursor-type) ; can't remember why this string is here..
-				   (if fb2-reader-title-in-headerline
-				       (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))))))
+      (setq fb2-reader-rendering-future
+	    (fb2-reader-render-async
+	     book
+	     (lambda (result)
+	       (with-current-buffer bufname
+		 ;; For some reason propertized string returned from async process
+		 ;; loses hash at it's beginning.
+		 (fb2-reader-add-to-cache fb2-reader-file-name
+					  (read (concat "#" result)))
+		 (fb2-reader-restore-buffer)
+		 (kill-local-variable 'cursor-type) ; can't remember why this string is here..
+		 (if fb2-reader-title-in-headerline
+		     (setq fb2-reader-header-line-toc (fb2-reader-create-headerline-data)))
+		 (setq fb2-reader-rendering-future nil))))))
 
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
