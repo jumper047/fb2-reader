@@ -116,6 +116,13 @@
   :type 'integer
   :group 'fb2-reader)
 
+(defcustom fb2-reader-splash-text nil
+  "Custom text on loading splash screen.
+If nil \"Loading, please wait\" translated to book's language
+will be used. Enter your variant if you need something special."
+  :type 'string
+  :group 'fb2-reader)
+
 (defface fb2-reader-default
   '((t (:inherit default)))
    "Default face for fb2-reader buffer."
@@ -124,6 +131,11 @@
 (defface fb2-reader-title
   '((t (:height 1.4 :inherit default)))
    "Face for titles in fb2-reader buffer."
+   :group 'fb2-reader)
+
+(defface fb2-reader-splash
+  '((t (:height 1.5 :inherit default)))
+   "Face for splash screen text about book rendering"
    :group 'fb2-reader)
 
 (defface fb2-reader-info-field
@@ -329,7 +341,7 @@ than planned\)"
 				(progn
 				  (move-end-of-line 1) (point))))))
 	(when (> (length linestr) 0)
-	  (setq prefix (fb2-reader--center-prefix fill-column (length linestr) height))
+	  (setq prefix (fb2-reader--center-prefix fb2-reader-page-width (length linestr) height))
 	  (move-beginning-of-line 1)
 	  (kill-line)
 	  (insert (s-repeat prefix " "))
@@ -527,6 +539,156 @@ FIELD-NAME is what shold be in left of : when name is printed."
     (fb2-reader--insert-image data-str type-str)
     (insert "\n")))
 
+;; Splash screen
+
+(defun fb2-reader-splash-text (item)
+  "Insert splash screent text.
+If no custom text, take text's language from ITEM."
+  (if (not (null fb2-reader-splash-text))
+      fb2-reader-splash-text
+    (let ((lang (if (null item) "en" (cl-third item))))
+      (fb2-reader-splash-text-for-lang lang))))
+
+(defun fb2-reader-splash-text-for-lang (lang)
+  "Get splash text depending on LANG."
+    (cond
+     ;; ((equal lang "ab")) ;; Abhazia
+     ((equal lang "az")
+      "Yüklənir Zəhmət olmasa gözləyin. ")
+     ((equal lang "sq")
+      "Duke u ngarkuar, ju lutem prisni.")
+     ((equal lang "en")
+      "Loading, please wait.")
+     ((equal lang "hy")
+      "Բեռնվում է, խնդրում ենք սպասել.")
+     ((equal lang "be")
+      "Ідзе загрузка, пачакайце.")
+     ((equal lang "bg")
+      "Зареждане, моля, изчакайте.")
+     ((equal lang "hu")
+      "Betöltés; kérem várjon.")
+     ((equal lang "vi")
+      "Tải vui lòng đợi.")
+     ((equal lang "nl")
+      "Laden even geduld aub.")
+     ((equal lang "el")
+      "Φορτώνει παρακαλώ περιμένετε.")
+     ;; ((equal lang "he")
+      ;; "טוען אנא המתן.")	    ;;Israel
+     ((equal lang "es")
+      "Cargando, por favor espere.")
+     ((equal lang "it")
+      "Caricamento in corso, attendere prego.")
+     ((equal lang "kk")
+      "Жүктелуде, күте тұрыңыз.")
+     ((equal lang "ky")
+      "Жүктөлүүдө, күтө туруңуз.")
+     ((equal lang "zh")
+      "加载请稍候")
+     ((equal lang "ko")
+      "로딩 중 기다려주세요.")
+     ((equal lang "la")
+      "Onerans, obsecro, expecta.")
+     ((equal lang "lv")
+      "Iekraušana, lūdzu, uzgaidiet.")
+     ((equal lang "lt")
+      "Pakraunama, palaukite.")
+     ((equal lang "mk")
+      "Се вчитува, Ве молиме почекајте.")
+     ;; ((equal lang "mo"))    ;; Moldavia
+     ((equal lang "mn")
+      "Ачаалж байна, түр хүлээнэ үү.")
+     ((equal lang "de")
+      "Wird geladen, bitte warten.")
+     ((equal lang "no")
+      "Laster Vennligst vent.")
+     ;; ((equal lang "fa")
+      ;; "در حال بارگذاری لطفا صبر کنید.")    ;; Persian
+     ((equal lang "pl")
+      "Ładowanie, proszę czekać.")
+     ((equal lang "pt")
+      "Carregamento, aguarde, por favor.")
+     ((equal lang "ru")
+      "Загружается, пожалуйста подождите.")
+     ;; ((equal lang "sa"))    ;; Sanscrit
+     ((equal lang "sk")
+      "Načítava sa, počkajte, prosím.")
+     ((equal lang "sl")
+      "Načítava sa, počkajte, prosím.")
+     ((equal lang "tg")
+      "Бор карда мешавад, лутфан интизор шавед.")
+     ((equal lang "tt")
+      "Йөкләү, зинһар, көтегез.")
+     ((equal lang "tr")
+      "Yükleniyor lütfen bekleyin.")
+     ((equal lang "uz")
+      "Yuklanmoqda, kuting.")
+     ((equal lang "uk")
+      "Завантаження, будь ласка, зачекайте.")
+     ;; ((equal lang "cy"))    ;; Wels
+     ((equal lang "fi")
+      "Ladataan, odota.")
+     ((equal lang "fr")
+      "Chargement, veuillez patienter.")
+     ((equal lang "cs")
+      "Načítá se, vyčkejte prosím.")
+     ((equal lang "sv")
+      "Laddar, vänligen vänta.")
+     ((equal lang "eo")
+      "Ŝarĝante, bonvolu atendi.")
+     ((equal lang "ja")
+      "読み込み中。。。待って下さい。")
+     ((equal lang "et")
+      "Laadimine, palun oodake.")
+     (t
+      "Loading, please wait.")))
+
+(defun fb2-reader-splash-title (item)
+  "Insert title taken from ITEM."
+  (let ((title (cl-third item)))
+    (insert (propertize title 'face 'fb2-reader-title))
+    (newline)))
+
+(defun fb2-reader-splash-cover (book item)
+  "Insert cover for splash screen.
+Take cover from BOOK according to data in ITEM."
+  (let* ((attrs (cl-second (cl-third item)))
+	 (imgdata (fb2-reader--extract-image-data book attrs))
+	 (type-str (cl-first imgdata))
+	 (data-str (cl-second imgdata)))
+    (fb2-reader--insert-image data-str type-str nil t)
+    (newline)))
+
+(defun fb2-reader-splash-author (item)
+  "Insert author's name, taken from ITEM."
+  (let* ((fields (cddr item))
+	 (name (s-join " " (-non-nil (list (cl-second (alist-get 'first-name fields))
+					   (cl-second (alist-get 'middle-name fields))
+					   (cl-second (alist-get 'nick fields))
+					   (cl-second (alist-get 'last-name fields)))))))
+    (when name
+      (insert (propertize name 'face 'fb2-reader-title))
+      (newline))))
+
+(defun fb2-reader-splash-screen (book)
+  "Insert loading screen for BOOK."
+  (let ((fill-column fb2-reader-page-width)
+	(title-item (fb2-reader--get-title book))
+	(cover-item (fb2-reader--get-cover book))
+	(name-item (fb2-reader--get-author book))
+	(lang-item (fb2-reader--get-lang book))
+	(start (point))
+	(height (face-attribute 'fb2-reader-title :height))
+	(splash-height (face-attribute 'fb2-reader-title :height)))
+    (if name-item (fb2-reader-splash-author name-item))
+    (if title-item (fb2-reader-splash-title title-item))
+    (fb2-reader--recenter-region start (point) height)
+    (if cover-item (fb2-reader-splash-cover book cover-item))
+    (setq start (point))
+    (insert (propertize (fb2-reader-splash-text lang-item)
+			'face 'fb2-reader-splash))
+    (fb2-reader--recenter-region start (point-max) splash-height)))
+
 ;; Links
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
@@ -639,9 +801,12 @@ if these parameters are set."
   "Get annotation node from BOOK."
   (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'annotation))
 
+(defun fb2-reader--get-lang (book)
+  "Get lang node from BOOK."
+  (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'lang))
 
 (defun fb2-reader-render (book)
-  "Render BOOK and insert it into the current buffer."
+  "Render2 BOOK and insert it into the current buffer."
 
   (setq-local fill-column fb2-reader-page-width)
   (dolist (body (fb2-reader--get-bodies book))
@@ -1225,7 +1390,6 @@ and overall width of the page exceeds defined width."
 	(fb2-reader-restore-buffer)
       (setq book (fb2-reader-parse-file fb2-reader-file-name))
       (setq-local cursor-type nil)
-      (insert (propertize "Rendering in process, please wait." 'face 'fb2-reader-title))
       (fill-region (point-min) (point-max) 'center)
       (setq fb2-reader-rendering-future
 	    (fb2-reader-render-async
@@ -1246,7 +1410,8 @@ and overall width of the page exceeds defined width."
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
     (setq visual-fill-column-center-text 't)
-    (visual-fill-column-mode)))
+    (visual-fill-column-mode)
+    (fb2-reader-splash-screen book)))
 
 (provide 'fb2-reader)
 
