@@ -154,7 +154,7 @@ will be used. Enter your variant if you need something special."
   :group 'fb2-reader)
 
 (defface fb2-reader-header-line
-  '((t (:height 1.4 :inherit 'header-line)))
+  '((t (:height 1.4 :inherit header-line)))
   "Face for header line with current title."
   :group 'fb2-reader)
 
@@ -204,7 +204,7 @@ will be used. Enter your variant if you need something special."
   "Recursively parse ITEM and insert it into the buffer.
 BOOK is whole xml tree (it is needed in case)"
 
-  (or face (setq face '((:inherit 'fb2-reader-default))))
+  (or face (setq face '((:inherit fb2-reader-default))))
   (or tags (setq tags '()))
   ;; (or alignment (setq alignment 'left))
   (or alignment (setq alignment 'full))
@@ -301,7 +301,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
 
   (let* ((height (face-attribute 'fb2-reader-title :height))
 	 (title-fill-column (round (/ fb2-reader-page-width height)))
-	 (title-face (cons '(:inherit 'fb2-reader-title)
+	 (title-face (cons '(:inherit fb2-reader-title)
 			   (assq-delete-all :inherit face)))
 	 (fill-column-backup fill-column)
 	 start
