@@ -84,6 +84,7 @@ Plugin for Emacs to read FictionBook2 ebooks.
 * Usage
   Just open an .fb2 or .fb2.zip file.
   First opening will take a time - book will be rendered and saved to cache, so all next ones will be quick.
+  You can continue reading by executing =M-x fb2-reader-continue=.
   Key bindings listed below:
 
   *Fb2-reader:*

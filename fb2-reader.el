@@ -58,6 +58,10 @@
 ;;      (fb2-reader-page-width 120)
 ;;      (fb2-reader-image-max-width 400)
 ;;      (fb2-reader-image-max-height 400))
+;;
+;; Usage:
+;; Just open any fb2 book, or execute command =fb2-reader-continue=
+
 
 ;;; Code:
 
@@ -1247,6 +1251,19 @@ Replace already added data if presented."
 	 (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
     (with-current-buffer buffer (goto-char (or pos (point-min))))))
 
+(defun fb2-reader-continue ()
+  "Continue reading last opened book."
+  (interactive)
+  (let ((positions (fb2-reader-positions))
+	filename)
+    (if (null positions)
+	(user-error "Can't find saved book positions, you should open at least one"))
+    (setq filename (caar positions))
+    (if (not (f-exists-p filename))
+	(user-error "Last opened book was moved or deleted"))
+    (find-file filename)
+    (if (not (eq major-mode 'fb2-reader-mode))
+	(fb2-reader-mode))))
 
 (defun fb2-reader-read-fb2-zip (file)
   "Read book from fb2.zip FILE.
