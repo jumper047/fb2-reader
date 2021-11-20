@@ -816,12 +816,22 @@ if these parameters are set."
   "Get lang node from BOOK."
   (fb2-reader--find-subitem-recursively (cddr book) 'description 'title-info 'lang))
 
+(defun fb2-reader--get-program (book)
+  "Get program used to generate BOOK."
+  (fb2-reader--find-subitem-recursively (cddr book) 'description 'document-info 'program-used))
+
 (defun fb2-reader-render (book)
   "Render2 BOOK and insert it into the current buffer."
 
   (setq-local fill-column fb2-reader-page-width)
-  (dolist (body (fb2-reader--get-bodies book))
-    (fb2-reader-parse book body)))
+  (let ((program (cl-third (fb2-reader--get-program book))))
+    (cond ((equal program "LibRusEc kit")
+	   ;; Seems like librusec books have not entirely correct structure.
+	   (dolist (item (cdddr book))
+	     (fb2-reader-parse book item)))
+	  (t
+	   (dolist (body (fb2-reader--get-bodies book))
+	     (fb2-reader-parse book body))))))
 
 (defun fb2-reader-render-async (book callback)
   "Render BOOK asynchronously, launch CALLBACK with result."
@@ -1269,11 +1279,25 @@ Book name should be the same as archive except .zip extension."
       (fb2-reader-read-fb2-zip file)
     (fb2-reader-read-fb2 file)))
 
+(defun fb2-reader--parse-xml-buffer ()
+  "Parse current buffer, return xml tree.
+First time tries to parse with `libxml-parse-xml-region'.
+If result returns nil tries again with `libxml-parse-html-region',
+and cutting results to mimic parse-xml result (deleting outer
+html and body))."
+  (let ((xmltree (libxml-parse-xml-region (point-min) (point-max))))
+    (if (not (null xmltree))
+	xmltree
+      ;; If parse-xml returns nil try to parse with parse-html.
+      ;; It helps if there are inapropriate symbols inside tags.
+      (setq xmltree (cl-third (cl-third (libxml-parse-html-region
+					 (point-min) (point-max))))))))
+
 (defun fb2-reader-parse-file (file)
   "Read and parse FB2 FILE, return xml tree."
   (with-temp-buffer
     (insert (fb2-reader-read-file file))
-    (libxml-parse-xml-region (point-min) (point-max))))
+    (fb2-reader--parse-xml-buffer)))
 
 (defun fb2-reader-show-xml ()
   "Open current book's raw xml."
