@@ -1423,7 +1423,6 @@ html and body))."
     (define-key map (kbd "a") 'show-all)
     (define-key map (kbd "s") 'show-subtree)
     (define-key map (kbd "f") 'outline-forward-same-level)
-    (define-key map (kbd "u") 'pdf-outline-up-heading)
     (define-key map (kbd "TAB") 'outline-toggle-children)
     (define-key map (kbd "RET") 'fb2-reader-toc-follow-link)
     (define-key map (kbd "C-o") 'fb2-reader-toc-display-link)
