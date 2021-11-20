@@ -15,27 +15,38 @@ Plugin for Emacs to read FictionBook2 ebooks.
 - restoring last read position
 - displaying raw xml
 - book info screen
+- table of content in separate buffer
 
 *Coming soon:*
 
-- table of content in separate buffer
 - integration with https://github.com/jumper047/librera-sync
 - rendering book in org-mode
 
 * Screenshots
 
-Main window
+*Main window*
 
-[[./images/window.png]]
+[[./images/main_window.png]]
 
 
-Header line
+*Header line*
 
 [[./images/headerline.gif]]
 
-Metadata screen
+
+*Metadata screen*
 
 [[./images/metadata.png]]
+
+
+*Book loading screen*
+
+[[./images/splash_screen.png]]
+
+*Outline*
+
+[[./images/outline.png]]
+
 
 * TL;DR
   Add to your config and open any .fb2 or .fb2.zip document.
@@ -73,24 +84,56 @@ Metadata screen
 * Usage
   Just open an .fb2 or .fb2.zip file.
   First opening will take a time - book will be rendered and saved to cache, so all next ones will be quick.
-  Default bindings listed below:
-  |----------+-----------------------------------------------|
-  | Key      | Action                                        |
-  |----------+-----------------------------------------------|
-  | =[=, =]= | Jump to previous or next chapter              |
-  |----------+-----------------------------------------------|
-  | =p=, =n= | Jump to previous or next displayed link       |
-  |----------+-----------------------------------------------|
-  | =l=, =r= | History navigation (for now, actualy, it just |
-  | =B=, =N= | jumps between last link target and location)  |
-  |----------+-----------------------------------------------|
-  | =g=      | Reload current book                           |
-  |----------+-----------------------------------------------|
-  | =v=      | View current book as xml                      |
-  |----------+-----------------------------------------------|
-  | =i=      | View FB2 metadata                             |
-  |----------+-----------------------------------------------|
-  | =j=      | Jump to chapter via imenu                     |
+  Key bindings listed below:
+
+  *Fb2-reader:*
+  |----------+-----------------------------------------|
+  | Key      | Action                                  |
+  |----------+-----------------------------------------|
+  | =[=, =]= | Jump to previous or next chapter        |
+  |----------+-----------------------------------------|
+  | =p=, =n= | Jump to previous or next displayed link |
+  |----------+-----------------------------------------|
+  | =l=, =B= | Jump to last used link's location       |
+  |----------+-----------------------------------------|
+  | =B=, =N= | Jump to last used link's target         |
+  |----------+-----------------------------------------|
+  | =g=      | Reload current book                     |
+  |----------+-----------------------------------------|
+  | =v=      | View current book as xml                |
+  |----------+-----------------------------------------|
+  | =i=      | View FB2 metadata                       |
+  |----------+-----------------------------------------|
+  | =j=      | Jump to chapter via imenu               |
+  |----------+-----------------------------------------|
+  | =o=, =t= | Show TOC outline                        |
+
+  *Metadata:*
+  |----------+------------------------------------|
+  | Key      | Action                             |
+  |----------+------------------------------------|
+  | =p=, =n= | Jump to previous or next field     |
+  |----------+------------------------------------|
+  | =P=, =N= | Jumps to previous or next category |
+
+  *Outline:*
+  |----------------+-------------------------------------------------|
+  | Key            | Action                                          |
+  |----------------+-------------------------------------------------|
+  | =p=, =n=       | Jump to previous or next heading                |
+  |----------------+-------------------------------------------------|
+  | =RET=          | Follow link                                     |
+  |----------------+-------------------------------------------------|
+  | =C-o=, =SPACE= | Display link (withoiut switching to fb2 buffer) |
+  |----------------+-------------------------------------------------|
+  | =M-RET=        | Follow link and quit TOC window                 |
+  |----------------+-------------------------------------------------|
+  | =o=, =t=       | Switch to fb2 window                            |
+  |----------------+-------------------------------------------------|
+  | =q=            | Quit TOC window                                 |
+  |----------------+-------------------------------------------------|
+  | =Q=            | Kill TOC window                                 |
+  |----------------+-------------------------------------------------|
 
 * Aknowledgements
 Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]]

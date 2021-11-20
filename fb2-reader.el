@@ -41,10 +41,10 @@
 ;; - restoring last read position
 ;; - displaying raw xml
 ;; - book info screen
+;; - table of content in separate buffer
 ;;
 ;; Coming soon:
 ;; 
-;; - table of content in separate buffer
 ;; - integration with https://github.com/jumper047/librera-sync
 ;; - rendering book in org-mode
 ;;
