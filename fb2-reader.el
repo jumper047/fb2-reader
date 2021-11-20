@@ -1654,7 +1654,9 @@ and overall width of the page exceeds defined width."
     (setq visual-fill-column-center-text 't
 	  visual-fill-column-enable-sensible-window-split 't)
     (visual-fill-column-mode)
-    (fb2-reader-splash-screen book)))
+    (unless (or (null fb2-reader-rendering-future)
+	    (async-ready fb2-reader-rendering-future))
+	(fb2-reader-splash-screen book))))
 
 (provide 'fb2-reader)
 
