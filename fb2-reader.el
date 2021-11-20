@@ -1651,7 +1651,8 @@ and overall width of the page exceeds defined width."
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
-    (setq visual-fill-column-center-text 't)
+    (setq visual-fill-column-center-text 't
+	  visual-fill-column-enable-sensible-window-split 't)
     (visual-fill-column-mode)
     (fb2-reader-splash-screen book)))
 
