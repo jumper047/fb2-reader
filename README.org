@@ -116,6 +116,8 @@ Plugin for Emacs to read FictionBook2 ebooks.
   | =p=, =n= | Jump to previous or next field     |
   |----------+------------------------------------|
   | =P=, =N= | Jumps to previous or next category |
+  |----------+------------------------------------|
+  | =q=      | Quit window                        |
 
   *Outline:*
   |----------------+-------------------------------------------------|
