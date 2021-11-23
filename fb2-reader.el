@@ -1252,6 +1252,7 @@ Replace already added data if presented."
 	 (pos (car (alist-get filename (fb2-reader-positions) nil nil 'equal))))
     (with-current-buffer buffer (goto-char (or pos (point-min))))))
 
+;;;###autoload
 (defun fb2-reader-continue ()
   "Continue reading last opened book."
   (interactive)
