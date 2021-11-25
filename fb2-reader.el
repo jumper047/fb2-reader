@@ -625,7 +625,7 @@ If no custom text, take text's language from ITEM."
      ((equal lang "pt")
       "Carregamento, aguarde, por favor.")
      ((equal lang "ru")
-      "Загружается, пожалуйста подождите.")
+      "Загружается, пожалуйста, подождите.")
      ;; ((equal lang "sa"))    ;; Sanscrit
      ((equal lang "sk")
       "Načítava sa, počkajte, prosím.")
