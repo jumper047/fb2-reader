@@ -1171,6 +1171,7 @@ Replace already added data if presented."
     (unless book
       (setq book (fb2-reader-parse-file-as-html fb2-reader-file-name)
 	    render-fn 'fb2-reader-render-html))
+    (unless book (user-error "FB2 document corrupted"))
     (fb2-reader-save-pos buffer)
     (setq fb2-reader-rendering-future
 	  (fb2-reader-render-async
@@ -1338,6 +1339,9 @@ and switches to parse-html on failure."
 
 (defun fb2-reader-parse-file-as-html (file)
   "Read and parse FB2 FILE as html, return xml tree."
+  ;; Html parser is fallback solution, so this error will indicate
+  ;; something goes wrong.
+  (message "Trying to parse FB2 as html.")
   (with-temp-buffer
     (insert (fb2-reader-read-file file))
     (fb2-reader--parse-html-buffer)))
@@ -1573,6 +1577,7 @@ Display window if it is hidden and FORCE-DISPLAY is 't"
 	 (buffer-exist-p (get-buffer bname))
 	 (buffer (get-buffer-create bname))
 	 (book (fb2-reader-parse-file fb2-reader-file-name)))
+    (unless book (user-error "FB2 document corrupted"))
     (switch-to-buffer buffer)
     (unless buffer-exist-p
       (dolist (item (cddr (fb2-reader--get-description book)))
@@ -1702,6 +1707,7 @@ and overall width of the page exceeds defined width."
       (unless book
 	(setq book (fb2-reader-parse-file-as-html fb2-reader-file-name)
 	      render-fn 'fb2-reader-render-html))
+      (unless book (user-error "FB2 document corrupted"))
       (setq-local cursor-type nil)
       (fill-region (point-min) (point-max) 'center)
       (setq fb2-reader-rendering-future
