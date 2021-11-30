@@ -135,18 +135,18 @@ will be used. Enter your variant if you need something special."
 
 (defface fb2-reader-default
   '((t (:inherit default)))
-   "Default face for fb2-reader buffer."
-   :group 'fb2-reader)
+  "Default face for fb2-reader buffer."
+  :group 'fb2-reader)
 
 (defface fb2-reader-title
   '((t (:height 1.4 :inherit default)))
-   "Face for titles in fb2-reader buffer."
-   :group 'fb2-reader)
+  "Face for titles in fb2-reader buffer."
+  :group 'fb2-reader)
 
 (defface fb2-reader-splash
   '((t (:height 1.5 :inherit default)))
-   "Face for splash screen text about book rendering"
-   :group 'fb2-reader)
+  "Face for splash screen text about book rendering"
+  :group 'fb2-reader)
 
 (defface fb2-reader-info-field
   '((t (:weight bold)))
@@ -567,97 +567,97 @@ If no custom text, take text's language from ITEM."
 
 (defun fb2-reader-splash-text-for-lang (lang)
   "Get splash text depending on LANG."
-    (cond
-     ;; ((equal lang "ab")) ;; Abhazia
-     ((equal lang "az")
-      "Yüklənir Zəhmət olmasa gözləyin. ")
-     ((equal lang "sq")
-      "Duke u ngarkuar, ju lutem prisni.")
-     ((equal lang "en")
-      "Loading, please wait.")
-     ((equal lang "hy")
-      "Բեռնվում է, խնդրում ենք սպասել.")
-     ((equal lang "be")
-      "Ідзе загрузка, пачакайце.")
-     ((equal lang "bg")
-      "Зареждане, моля, изчакайте.")
-     ((equal lang "hu")
-      "Betöltés; kérem várjon.")
-     ((equal lang "vi")
-      "Tải vui lòng đợi.")
-     ((equal lang "nl")
-      "Laden even geduld aub.")
-     ((equal lang "el")
-      "Φορτώνει παρακαλώ περιμένετε.")
-     ;; ((equal lang "he")
-      ;; "טוען אנא המתן.")	    ;;Israel
-     ((equal lang "es")
-      "Cargando, por favor espere.")
-     ((equal lang "it")
-      "Caricamento in corso, attendere prego.")
-     ((equal lang "kk")
-      "Жүктелуде, күте тұрыңыз.")
-     ((equal lang "ky")
-      "Жүктөлүүдө, күтө туруңуз.")
-     ((equal lang "zh")
-      "加载请稍候")
-     ((equal lang "ko")
-      "로딩 중 기다려주세요.")
-     ((equal lang "la")
-      "Onerans, obsecro, expecta.")
-     ((equal lang "lv")
-      "Iekraušana, lūdzu, uzgaidiet.")
-     ((equal lang "lt")
-      "Pakraunama, palaukite.")
-     ((equal lang "mk")
-      "Се вчитува, Ве молиме почекајте.")
-     ;; ((equal lang "mo"))    ;; Moldavia
-     ((equal lang "mn")
-      "Ачаалж байна, түр хүлээнэ үү.")
-     ((equal lang "de")
-      "Wird geladen, bitte warten.")
-     ((equal lang "no")
-      "Laster Vennligst vent.")
-     ;; ((equal lang "fa")
-      ;; "در حال بارگذاری لطفا صبر کنید.")    ;; Persian
-     ((equal lang "pl")
-      "Ładowanie, proszę czekać.")
-     ((equal lang "pt")
-      "Carregamento, aguarde, por favor.")
-     ((equal lang "ru")
-      "Загружается, пожалуйста, подождите.")
-     ;; ((equal lang "sa"))    ;; Sanscrit
-     ((equal lang "sk")
-      "Načítava sa, počkajte, prosím.")
-     ((equal lang "sl")
-      "Načítava sa, počkajte, prosím.")
-     ((equal lang "tg")
-      "Бор карда мешавад, лутфан интизор шавед.")
-     ((equal lang "tt")
-      "Йөкләү, зинһар, көтегез.")
-     ((equal lang "tr")
-      "Yükleniyor lütfen bekleyin.")
-     ((equal lang "uz")
-      "Yuklanmoqda, kuting.")
-     ((equal lang "uk")
-      "Завантаження, будь ласка, зачекайте.")
-     ;; ((equal lang "cy"))    ;; Wels
-     ((equal lang "fi")
-      "Ladataan, odota.")
-     ((equal lang "fr")
-      "Chargement, veuillez patienter.")
-     ((equal lang "cs")
-      "Načítá se, vyčkejte prosím.")
-     ((equal lang "sv")
-      "Laddar, vänligen vänta.")
-     ((equal lang "eo")
-      "Ŝarĝante, bonvolu atendi.")
-     ((equal lang "ja")
-      "読み込み中。。。待って下さい。")
-     ((equal lang "et")
-      "Laadimine, palun oodake.")
-     (t
-      "Loading, please wait.")))
+  (cond
+   ;; ((equal lang "ab")) ;; Abhazia
+   ((equal lang "az")
+    "Yüklənir Zəhmət olmasa gözləyin. ")
+   ((equal lang "sq")
+    "Duke u ngarkuar, ju lutem prisni.")
+   ((equal lang "en")
+    "Loading, please wait.")
+   ((equal lang "hy")
+    "Բեռնվում է, խնդրում ենք սպասել.")
+   ((equal lang "be")
+    "Ідзе загрузка, пачакайце.")
+   ((equal lang "bg")
+    "Зареждане, моля, изчакайте.")
+   ((equal lang "hu")
+    "Betöltés; kérem várjon.")
+   ((equal lang "vi")
+    "Tải vui lòng đợi.")
+   ((equal lang "nl")
+    "Laden even geduld aub.")
+   ((equal lang "el")
+    "Φορτώνει παρακαλώ περιμένετε.")
+   ;; ((equal lang "he")
+   ;; "טוען אנא המתן.")	    ;;Israel
+   ((equal lang "es")
+    "Cargando, por favor espere.")
+   ((equal lang "it")
+    "Caricamento in corso, attendere prego.")
+   ((equal lang "kk")
+    "Жүктелуде, күте тұрыңыз.")
+   ((equal lang "ky")
+    "Жүктөлүүдө, күтө туруңуз.")
+   ((equal lang "zh")
+    "加载请稍候")
+   ((equal lang "ko")
+    "로딩 중 기다려주세요.")
+   ((equal lang "la")
+    "Onerans, obsecro, expecta.")
+   ((equal lang "lv")
+    "Iekraušana, lūdzu, uzgaidiet.")
+   ((equal lang "lt")
+    "Pakraunama, palaukite.")
+   ((equal lang "mk")
+    "Се вчитува, Ве молиме почекајте.")
+   ;; ((equal lang "mo"))    ;; Moldavia
+   ((equal lang "mn")
+    "Ачаалж байна, түр хүлээнэ үү.")
+   ((equal lang "de")
+    "Wird geladen, bitte warten.")
+   ((equal lang "no")
+    "Laster Vennligst vent.")
+   ;; ((equal lang "fa")
+   ;; "در حال بارگذاری لطفا صبر کنید.")    ;; Persian
+   ((equal lang "pl")
+    "Ładowanie, proszę czekać.")
+   ((equal lang "pt")
+    "Carregamento, aguarde, por favor.")
+   ((equal lang "ru")
+    "Загружается, пожалуйста, подождите.")
+   ;; ((equal lang "sa"))    ;; Sanscrit
+   ((equal lang "sk")
+    "Načítava sa, počkajte, prosím.")
+   ((equal lang "sl")
+    "Načítava sa, počkajte, prosím.")
+   ((equal lang "tg")
+    "Бор карда мешавад, лутфан интизор шавед.")
+   ((equal lang "tt")
+    "Йөкләү, зинһар, көтегез.")
+   ((equal lang "tr")
+    "Yükleniyor lütfen bekleyin.")
+   ((equal lang "uz")
+    "Yuklanmoqda, kuting.")
+   ((equal lang "uk")
+    "Завантаження, будь ласка, зачекайте.")
+   ;; ((equal lang "cy"))    ;; Wels
+   ((equal lang "fi")
+    "Ladataan, odota.")
+   ((equal lang "fr")
+    "Chargement, veuillez patienter.")
+   ((equal lang "cs")
+    "Načítá se, vyčkejte prosím.")
+   ((equal lang "sv")
+    "Laddar, vänligen vänta.")
+   ((equal lang "eo")
+    "Ŝarĝante, bonvolu atendi.")
+   ((equal lang "ja")
+    "読み込み中。。。待って下さい。")
+   ((equal lang "et")
+    "Laadimine, palun oodake.")
+   (t
+    "Loading, please wait.")))
 
 (defun fb2-reader-splash-title (item)
   "Insert title taken from ITEM."
@@ -825,29 +825,31 @@ if these parameters are set."
   "Get program used to generate BOOK."
   (fb2-reader--find-subitem-recursively (cddr book) 'description 'document-info 'program-used))
 
-(defun fb2-reader-render (book)
+(defun fb2-reader-render-html (book)
   "Render2 BOOK and insert it into the current buffer."
 
   (setq-local fill-column fb2-reader-page-width)
-  (let ((program (cl-third (fb2-reader--get-program book))))
-    (cond ((equal program "LibRusEc kit")
-	   ;; Seems like librusec books have not entirely correct structure.
-	   (dolist (item (cdddr book))
-	     (fb2-reader-parse book item)))
-	  (t
-	   (dolist (body (fb2-reader--get-bodies book))
-	     (fb2-reader-parse book body))))))
+  (dolist (item (cdddr book))
+    (fb2-reader-parse book item)))
 
-(defun fb2-reader-render-async (book callback)
-  "Render BOOK asynchronously, launch CALLBACK with result."
+(defun fb2-reader-render-xml (book)
+  "Render2 BOOK and insert it into the current buffer."
+
+  (setq-local fill-column fb2-reader-page-width)
+  (dolist (body (fb2-reader--get-bodies book))
+    (fb2-reader-parse book body)))
+
+(defun fb2-reader-render-async (book render-fn callback)
+  "Render BOOK asynchronously using RENDER-FN, launch CALLBACK with result."
   (async-start
    `(lambda ()
       ,(async-inject-variables "\\`\\(fb2-reader\\)-")
       ,(async-inject-variables "book")
+      ,(async-inject-variables "render-fn")
       (setq load-path (quote ,load-path))
       (require 'fb2-reader)
       (with-temp-buffer
-	(fb2-reader-render (quote ,book))
+	(funcall (quote ,render-fn) (quote ,book))
 	(prin1-to-string (buffer-substring (point-min) (point-max)))))
    callback))
 
@@ -1164,11 +1166,16 @@ Replace already added data if presented."
 (defun fb2-reader--refresh-buffer ()
   "Rerender book in current buffer."
   (let ((book (fb2-reader-parse-file fb2-reader-file-name))
+	(render-fn 'fb2-reader-render-xml)
 	(buffer (current-buffer)))
+    (unless book
+      (setq book (fb2-reader-parse-file-as-html fb2-reader-file-name)
+	    render-fn 'fb2-reader-render-html))
     (fb2-reader-save-pos buffer)
     (setq fb2-reader-rendering-future
 	  (fb2-reader-render-async
 	   book
+	   render-fn
 	   (lambda (result)
 	     (with-current-buffer buffer
 	       (fb2-reader-add-to-cache fb2-reader-file-name
@@ -1298,25 +1305,42 @@ Book name should be the same as archive except .zip extension."
       (fb2-reader-read-fb2-zip file)
     (fb2-reader-read-fb2 file)))
 
+(defun fb2-reader--parse-html-buffer ()
+  "Parse current buffer, return xml tree.
+First time tries to parse with `libxml-parse-xml-region'.
+If result returns nil tries again with `libxml-parse-html-region',
+and cutting results to mimic parse-xml result (deleting outer
+html and body))."
+  (cl-third (cl-third (libxml-parse-html-region (point-min) (point-max)))))
+
 (defun fb2-reader--parse-xml-buffer ()
   "Parse current buffer, return xml tree.
 First time tries to parse with `libxml-parse-xml-region'.
 If result returns nil tries again with `libxml-parse-html-region',
 and cutting results to mimic parse-xml result (deleting outer
 html and body))."
-  (let ((xmltree (libxml-parse-xml-region (point-min) (point-max))))
-    (if (not (null xmltree))
-	xmltree
-      ;; If parse-xml returns nil try to parse with parse-html.
-      ;; It helps if there are inapropriate symbols inside tags.
-      (setq xmltree (cl-third (cl-third (libxml-parse-html-region
-					 (point-min) (point-max))))))))
+  (libxml-parse-xml-region (point-min) (point-max)))
 
 (defun fb2-reader-parse-file (file)
-  "Read and parse FB2 FILE, return xml tree."
+  "Read and parse FB2 FILE, return xml tree.
+This function tries to parse file with parse-xml first,
+and switches to parse-html on failure."
+  (with-temp-buffer
+    (insert (fb2-reader-read-file file))
+    (let ((tree (fb2-reader--parse-xml-buffer)))
+      (or tree (fb2-reader--parse-html-buffer)))))
+
+(defun fb2-reader-parse-file-as-xml (file)
+  "Read and parse FB2 FILE as xml, return xml tree."
   (with-temp-buffer
     (insert (fb2-reader-read-file file))
     (fb2-reader--parse-xml-buffer)))
+
+(defun fb2-reader-parse-file-as-html (file)
+  "Read and parse FB2 FILE as html, return xml tree."
+  (with-temp-buffer
+    (insert (fb2-reader-read-file file))
+    (fb2-reader--parse-html-buffer)))
 
 (defun fb2-reader-show-xml ()
   "Open current book's raw xml."
@@ -1625,8 +1649,8 @@ and overall width of the page exceeds defined width."
 	  (setq fill-column target-width)
 	  ;; To apply changes immediately:
 	  (when visual-fill-column-mode
-	      (visual-fill-column-adjust)
-	      (redisplay 't))))
+	    (visual-fill-column-adjust)
+	    (redisplay 't))))
     (fb2-reader-disable-dlnm-workaround)))
 
 
@@ -1668,16 +1692,22 @@ and overall width of the page exceeds defined width."
   (fb2-reader-ensure-settingsdir)
   (erase-buffer)
   (let ((bufname (buffer-name))
-	book)
+	book
+	render-fn)
     ;; (push "~/Src/Linux/_my/fb2-reader" load-path)
     (if (fb2-reader-cache-avail-p fb2-reader-file-name 't)
 	(fb2-reader-restore-buffer)
-      (setq book (fb2-reader-parse-file fb2-reader-file-name))
+      (setq book (fb2-reader-parse-file-as-xml fb2-reader-file-name)
+	    render-fn 'fb2-reader-render-xml)
+      (unless book
+	(setq book (fb2-reader-parse-file-as-html fb2-reader-file-name)
+	      render-fn 'fb2-reader-render-html))
       (setq-local cursor-type nil)
       (fill-region (point-min) (point-max) 'center)
       (setq fb2-reader-rendering-future
 	    (fb2-reader-render-async
 	     book
+	     render-fn
 	     (lambda (result)
 	       (with-current-buffer bufname
 		 ;; For some reason propertized string returned from async process
