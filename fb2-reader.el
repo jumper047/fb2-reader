@@ -1479,7 +1479,7 @@ and switches to parse-html on failure."
     (define-key map (kbd "t") 'fb2-reader-toc-select-fb2-window)
     (define-key map (kbd "Q") 'fb2-reader-toc-quit-and-kill)
     (define-key map (kbd "q") 'quit-window)
-    (define-key map (kbd "M-RET") 'pdf-outline-follow-link-and-quit)
+    (define-key map (kbd "M-RET") 'fb2-reader-follow-link-and-quit)
     map)
   "Keymap used in `fb2-reader-toc-mode'.")
 
