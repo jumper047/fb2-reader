@@ -110,6 +110,8 @@ Plugin for Emacs to read FictionBook2 ebooks.
   | =j=      | Jump to chapter via imenu               |
   |----------+-----------------------------------------|
   | =o=, =t= | Show TOC outline                        |
+  |----------+-----------------------------------------|
+  | =c=      | Toggle no-cursor mode                   |
 
   *Metadata:*
   |----------+------------------------------------|
@@ -118,6 +120,8 @@ Plugin for Emacs to read FictionBook2 ebooks.
   | =p=, =n= | Jump to previous or next field     |
   |----------+------------------------------------|
   | =P=, =N= | Jumps to previous or next category |
+  |----------+------------------------------------|
+  | =c=      | Toggle no-cursor mode              |
   |----------+------------------------------------|
   | =q=      | Quit window                        |
 

@@ -86,6 +86,11 @@
   :type 'boolean
   :group 'fb2-reader)
 
+(defcustom fb2-reader-hide-cursor t
+  "Enable `fb2-reader-no-cursor-mode' at mode's start."
+  :type 'boolean
+  :group 'fb2-reader)
+
 (defcustom fb2-reader-restore-position t
   "Restore last viewed position on book's opening."
   :type 'boolean
@@ -196,6 +201,9 @@ will be used. Enter your variant if you need something special."
 
 (defvar-local fb2-reader-rendering-future nil
   "Rendering future for current buffer")
+
+(defvar-local fb2-reader--link-is-visible-p nil
+  "Keeps result of previous execution of `fb2-reader-visible-link-p'")
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
@@ -1048,6 +1056,53 @@ NUMBER's sign determines search direction."
   (setq n (* n -1))
   (fb2-reader--jump-link n))
 
+
+
+(defun fb2-reader-visible-link-p ()
+  "Check if current window contain fb2 links."
+  (let ((first-link (next-single-property-change (window-start)
+						 'fb2-reader-target)))
+    (and first-link (<= first-link (window-end)))))
+
+(defun fb2-reader--jump-to-first-link ()
+  "Jump to first visible link on screen.
+Don't checking if link is actually visible,
+assuming this was checked before."
+  (goto-char (window-start))
+  (unless (plist-member (text-properties-at (point)) 'fb2-reader-target)
+    (fb2-reader--jump-link 1)))
+
+(defun fb2-reader-check-links ()
+  "Display cursor if link is visible and place the cursor on it."
+  (if (fb2-reader-visible-link-p)
+      (progn (setq-local cursor-type 't)
+      (unless (plist-member (text-properties-at (point)) 'fb2-reader-target)
+	(fb2-reader--jump-to-first-link)))
+    (setq-local cursor-type nil)))
+
+(defvar fb2-reader-no-cursor-mode-map
+  (let ((kmap (make-sparse-keymap)))
+    (define-key kmap (kbd "C-n") (lambda () (interactive) (scroll-up 1)))
+    (define-key kmap (kbd "C-p") (lambda () (interactive) (scroll-down 1)))
+    (define-key kmap (kbd "<down>") (lambda () (interactive) (scroll-up 1)))
+    (define-key kmap (kbd "<up>") (lambda () (interactive) (scroll-down 1)))
+    kmap)
+  "Keymap used for `fb2-reader-no-cursor-mode'.")
+
+(define-minor-mode fb2-reader-no-cursor-mode
+  "Hide cursor and rebind C-n and C-p to scroll window.
+
+\\{fb2-reader-no-cursor-mode-map\}"
+  :group 'fb2-reader
+  :global nil
+  (cond
+   (fb2-reader-no-cursor-mode
+    (setq cursor-type nil)
+    (add-hook 'post-command-hook 'fb2-reader-check-links nil 't))
+   (t
+    (setq cursor-type t)
+    (remove-hook 'post-command-hook 'fb2-reader-check-links 't))))
+
 ;; Caching
 
 (defun fb2-reader-cache-index ()
@@ -1583,7 +1638,9 @@ Display window if it is hidden and FORCE-DISPLAY is 't"
       (dolist (item (cddr (fb2-reader--get-description book)))
 	(fb2-reader-parse-metadata book item))
       (goto-char (point-min))
-      (fb2-reader-info-mode))))
+      (fb2-reader-info-mode)
+      (if fb2-reader-hide-cursor
+	  (fb2-reader-no-cursor-mode)))))
 
 (defun fb2-reader-info-buffer-name (&optional fb2-buffer)
   "Get info buffer name for FB2-BUFFER."
@@ -1618,6 +1675,7 @@ Display window if it is hidden and FORCE-DISPLAY is 't"
     (define-key map (kbd "p") 'fb2-reader-info-backward-field)
     (define-key map (kbd "N") 'fb2-reader-info-forward-category)
     (define-key map (kbd "P") 'fb2-reader-info-backward-category)
+    (define-key map (kbd "c") 'fb2-reader-no-cursor-mode)
     (define-key map (kbd "q") 'quit-window)
     map))
 
@@ -1675,6 +1733,7 @@ and overall width of the page exceeds defined width."
     (define-key map (kbd "t") 'fb2-reader-show-toc)
     (define-key map (kbd "o") 'fb2-reader-show-toc)
     (define-key map (kbd "j") 'imenu)
+    (define-key map (kbd "c") 'fb2-reader-no-cursor-mode)
     map))
 
 
@@ -1729,6 +1788,8 @@ and overall width of the page exceeds defined width."
     (fb2-reader-imenu-setup)
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
+    (if fb2-reader-hide-cursor
+	(fb2-reader-no-cursor-mode))
     (setq visual-fill-column-center-text 't
 	  visual-fill-column-enable-sensible-window-split 't)
     (visual-fill-column-mode)
