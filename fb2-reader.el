@@ -1806,6 +1806,9 @@ and overall width of the page exceeds defined width."
 		(async-ready fb2-reader-rendering-future))
       (fb2-reader-splash-screen book))))
 
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
+
 (provide 'fb2-reader)
 
 ;;; fb2-reader.el ends here
