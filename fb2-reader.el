@@ -1074,11 +1074,20 @@ assuming this was checked before."
 
 (defun fb2-reader-check-links ()
   "Display cursor if link is visible and place the cursor on it."
-  (if (fb2-reader-visible-link-p)
-      (progn (setq-local cursor-type 't)
-      (unless (plist-member (text-properties-at (point)) 'fb2-reader-target)
-	(fb2-reader--jump-to-first-link)))
+  (unless (fb2-reader-visible-link-p)
     (setq-local cursor-type nil)))
+
+(defun fb2-reader-forward-visible-link-ncm (&optional n)
+  "Go N visible links forward, make cursor visible."
+  (interactive "p")
+  (setq-local cursor-type 't)
+  (fb2-reader-forward-visible-link n))
+
+(defun fb2-reader-backward-visible-link-ncm (&optional n)
+  "Go N visible links backwarg, make cursor visible."
+  (interactive "p")
+  (setq-local cursor-type  't)
+  (fb2-reader-backward-visible-link n))
 
 (defvar fb2-reader-no-cursor-mode-map
   (let ((kmap (make-sparse-keymap)))
@@ -1086,6 +1095,8 @@ assuming this was checked before."
     (define-key kmap (kbd "C-p") (lambda () (interactive) (scroll-down 1)))
     (define-key kmap (kbd "<down>") (lambda () (interactive) (scroll-up 1)))
     (define-key kmap (kbd "<up>") (lambda () (interactive) (scroll-down 1)))
+    (define-key kmap (kbd "n") 'fb2-reader-forward-visible-link-ncm)
+    (define-key kmap (kbd "p") 'fb2-reader-backward-visible-link-ncm)
     kmap)
   "Keymap used for `fb2-reader-no-cursor-mode'.")
 
