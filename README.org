@@ -105,6 +105,8 @@ Plugin for Emacs to read FictionBook2 ebooks.
   |----------+-----------------------------------------|
   | =v=      | View current book as xml                |
   |----------+-----------------------------------------|
+  | =x=      | Reopen fb2.zip document as archive      |
+  |----------+-----------------------------------------|
   | =i=      | View FB2 metadata                       |
   |----------+-----------------------------------------|
   | =j=      | Jump to chapter via imenu               |

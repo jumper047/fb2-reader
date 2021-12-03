@@ -1416,6 +1416,14 @@ and switches to parse-html on failure."
       (xml-mode)
       (goto-char (point-min)))))
 
+(defun fb2-reader-reopen-as-archive ()
+  "Reopen current FB2.ZIP document as archive."
+  (interactive)
+  (fb2-reader-assert-mode-p)
+  (unless (equal (f-ext fb2-reader-file-name) "zip")
+    (user-errror "Document is not a zip archive"))
+  (with-current-buffer (find-file-literally fb2-reader-file-name)
+    (archive-mode)))
 
 ;; TOC outline
 
@@ -1729,6 +1737,7 @@ and overall width of the page exceeds defined width."
     (define-key map (kbd "N") 'fb2-reader-link-forward)
     (define-key map (kbd "g") 'fb2-reader-refresh)
     (define-key map (kbd "v") 'fb2-reader-show-xml)
+    (define-key map (kbd "x") 'fb2-reader-reopen-as-archive)
     (define-key map (kbd "i") 'fb2-reader-show-info)
     (define-key map (kbd "t") 'fb2-reader-show-toc)
     (define-key map (kbd "o") 'fb2-reader-show-toc)
