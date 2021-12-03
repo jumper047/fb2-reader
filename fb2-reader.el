@@ -1484,6 +1484,16 @@ and switches to parse-html on failure."
     (select-window (fb2-reader-toc-get-fb2-window t))
     (goto-char target)))
 
+(defun fb2-reader-toc-follow-link-quit ()
+  "Follow link under point in toc buffer and quit toc window."
+  (interactive)
+  (fb2-reader-toc-assert-mode-p)
+  (let ((target (fb2-reader-toc-target-at-pos)))
+    (unless target
+      (user-error "There is no destination at point"))
+    (fb2-reader-toc-quit)
+    (goto-char target)))
+
 (defun fb2-reader-toc-display-link (&optional pos)
   "Go to target at POS in fb2-reader buffer, but don't switch to it."
   (interactive)
@@ -1535,6 +1545,7 @@ and switches to parse-html on failure."
     (define-key map (kbd "f") 'outline-forward-same-level)
     (define-key map (kbd "TAB") 'outline-toggle-children)
     (define-key map (kbd "RET") 'fb2-reader-toc-follow-link)
+    (define-key map (kbd "M-RET") 'fb2-reader-toc-follow-link-quit)
     (define-key map (kbd "C-o") 'fb2-reader-toc-display-link)
     (define-key map (kbd "SPC") 'fb2-reader-toc-display-link)
     (define-key map [mouse-1] 'fb2-reader-toc-mouse-display-link)
@@ -1542,7 +1553,6 @@ and switches to parse-html on failure."
     (define-key map (kbd "t") 'fb2-reader-toc-select-fb2-window)
     (define-key map (kbd "Q") 'fb2-reader-toc-quit-and-kill)
     (define-key map (kbd "q") 'quit-window)
-    (define-key map (kbd "M-RET") 'fb2-reader-follow-link-and-quit)
     map)
   "Keymap used in `fb2-reader-toc-mode'.")
 
