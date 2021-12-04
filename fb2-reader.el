@@ -77,7 +77,12 @@
 
 
 (defcustom fb2-reader-settings-dir (expand-file-name "fb2-reader" user-emacs-directory)
-  "Path to directory with cached books, saved places etc."
+  "Path to directory with saved places etc."
+  :type 'directory
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-cache-dir (expand-file-name "fb2-reader" user-emacs-directory)
+  "Path to directory with cached books."
   :type 'directory
   :group 'fb2-reader)
 
@@ -970,20 +975,10 @@ header line and text for echo."
 
 ;; Reading from settings
 
-(defun fb2-reader-ensure-settingsdir ()
-  "Create settings directory if necessary."
-  (unless (f-exists-p fb2-reader-settings-dir)
-    (make-directory fb2-reader-settings-dir)))
-
-(defun fb2-reader-load-settings (loadfn filename)
-  "Open .el file from settings with function LOADFN.
-
-FILENAME located in settings directory.  Returns nil if file not found.
-LOADFN should receive only one argument - full path to file."
-  (let ((fullpath (f-join fb2-reader-settings-dir
-			  filename)))
-    (if (f-exists-p fullpath)
-	(funcall loadfn fullpath))))
+(defun fb2-reader-ensure-dir (dir)
+  "Create DIR if necessary."
+  (unless (f-exists-p dir)
+    (make-directory dir)))
 
 (defun fb2-reader-load-file (file)
   "Load text from FILE as elisp."
@@ -993,7 +988,6 @@ LOADFN should receive only one argument - full path to file."
 	(insert-file-contents file)
 	(goto-char (point-min))
 	(read (current-buffer)))))
-
 
 ;; Navigation
 
@@ -1127,12 +1121,8 @@ assuming this was checked before."
 
 (defun fb2-reader-cache-index ()
   "Read cache index."
-
-  (fb2-reader-load-settings 'fb2-reader-load-file
-			    fb2-reader-index-filename))
-
-
-
+  (fb2-reader-load-file (f-join fb2-reader-cache-dir
+				fb2-reader-index-filename)))
 
 (defun fb2-reader-save-cache-index (file index)
   "Serialize given cache INDEX and save it to FILE."
@@ -1170,12 +1160,8 @@ presented."
 (defun fb2-reader-get-cache (file)
   "Load cache for FILE if it exists."
 
-  (let ((cache-file (cl-second (alist-get file (fb2-reader-cache-index) nil nil 'equal))))
-    (if (and cache-file (f-exists-p cache-file))
-	(with-temp-buffer
-	  (insert-file-contents cache-file)
-	  (goto-char (point-min))
-	  (read (current-buffer))))))
+  (when-let ((cache-file (cl-second (alist-get file (fb2-reader-cache-index) nil nil 'equal))))
+    (fb2-reader-load-file cache-file)))
 
 (defun fb2-reader-add-to-cache (filename data)
   "Add to cache rendered DATA for FILENAME.
@@ -1183,8 +1169,8 @@ presented."
 Replace already added data if presented."
 
   (fb2-reader-remove-from-cache filename)
-  (let* ((idx-filename (f-join fb2-reader-settings-dir fb2-reader-index-filename))
-	 (cache-filename (f-join fb2-reader-settings-dir
+  (let* ((idx-filename (f-join fb2-reader-cache-dir fb2-reader-index-filename))
+	 (cache-filename (f-join fb2-reader-cache-dir
 				 (fb2-reader-gen-cache-file-name filename)))
 	 (index (fb2-reader-cache-index))
 	 (index-entry (list
@@ -1213,7 +1199,7 @@ Replace already added data if presented."
     (f-delete cache-file)
     (setq index (remove filename index))
     (fb2-reader-save-cache-index
-     (f-join fb2-reader-settings-dir fb2-reader-index-filename)
+     (f-join fb2-reader-cache-dir fb2-reader-index-filename)
      index)))
 
 (defun fb2-reader-restore-buffer (&optional buffer)
@@ -1292,8 +1278,8 @@ Replace already added data if presented."
 (defun fb2-reader-positions ()
   "Read file with saved positions and return alist."
 
-  (fb2-reader-load-settings 'fb2-reader-load-file
-			    fb2-reader-position-filename))
+  (fb2-reader-load-file (f-join fb2-reader-settings-dir
+				fb2-reader-position-filename)))
 
 (defun fb2-reader-save-pos (&optional buffer)
   "Save current position in BUFFER."
@@ -1787,7 +1773,8 @@ and overall width of the page exceeds defined width."
   ;; (add-hook 'change-major-mode-hook 'fb2-reader-save-curr-buffer nil t)
   (add-hook 'kill-emacs-hook #'fb2-reader-save-all-pos)
   (add-hook 'display-line-numbers-mode-hook #'fb2-reader-enable-dlnm-workaround nil t)
-  (fb2-reader-ensure-settingsdir)
+  (fb2-reader-ensure-dir fb2-reader-settings-dir)
+  (fb2-reader-ensure-dir fb2-reader-cache-dir)
   (erase-buffer)
   (let ((bufname (buffer-name))
 	book
