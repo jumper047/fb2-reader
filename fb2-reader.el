@@ -1074,20 +1074,25 @@ assuming this was checked before."
 
 (defun fb2-reader-check-links ()
   "Display cursor if link is visible and place the cursor on it."
-  (unless (fb2-reader-visible-link-p)
+  (unless (and (fb2-reader-visible-link-p) (member this-command '(fb2-reader-forward-visible-link-ncm
+								  fb2-reader-backward-visible-link-ncm)))
     (setq-local cursor-type nil)))
 
 (defun fb2-reader-forward-visible-link-ncm (&optional n)
   "Go N visible links forward, make cursor visible."
   (interactive "p")
-  (setq-local cursor-type 't)
-  (fb2-reader-forward-visible-link n))
+  (when (fb2-reader-visible-link-p)
+    (setq-local cursor-type 't)
+    (unless (fb2-reader-forward-visible-link n)
+      (fb2-reader--jump-to-first-link))))
 
 (defun fb2-reader-backward-visible-link-ncm (&optional n)
   "Go N visible links backwarg, make cursor visible."
   (interactive "p")
-  (setq-local cursor-type  't)
-  (fb2-reader-backward-visible-link n))
+  (when (fb2-reader-visible-link-p)
+    (setq-local cursor-type  't)
+    (unless (fb2-reader-backward-visible-link n)
+      (fb2-reader--jump-to-first-link))))
 
 (defvar fb2-reader-no-cursor-mode-map
   (let ((kmap (make-sparse-keymap)))
@@ -1109,10 +1114,10 @@ assuming this was checked before."
   (cond
    (fb2-reader-no-cursor-mode
     (setq cursor-type nil)
-    (add-hook 'post-command-hook 'fb2-reader-check-links nil 't))
+    (add-hook 'pre-command-hook 'fb2-reader-check-links nil 't))
    (t
     (setq cursor-type t)
-    (remove-hook 'post-command-hook 'fb2-reader-check-links 't))))
+    (remove-hook 'pre-command-hook 'fb2-reader-check-links 't))))
 
 ;; Caching
 
