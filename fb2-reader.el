@@ -1485,26 +1485,6 @@ and switches to parse-html on failure."
 	 'fb2-reader-outline-pos point)
 	(newline)))))
 
-(defun fb2-reader-toc-follow-link ()
-  "Follow link under point in toc buffer."
-  (interactive)
-  (fb2-reader-toc-assert-mode-p)
-  (let ((target (fb2-reader-toc-target-at-pos)))
-    (unless target
-      (user-error "There is no destination at point"))
-    (select-window (fb2-reader-toc-get-fb2-window t))
-    (goto-char target)))
-
-(defun fb2-reader-toc-follow-link-quit ()
-  "Follow link under point in toc buffer and quit toc window."
-  (interactive)
-  (fb2-reader-toc-assert-mode-p)
-  (let ((target (fb2-reader-toc-target-at-pos)))
-    (unless target
-      (user-error "There is no destination at point"))
-    (fb2-reader-toc-quit)
-    (goto-char target)))
-
 (defun fb2-reader-toc-display-link (&optional pos)
   "Go to target at POS in fb2-reader buffer, but don't switch to it."
   (interactive)
@@ -1514,7 +1494,20 @@ and switches to parse-html on failure."
     (unless target
       (user-error "There is no destination at point"))
     (with-selected-window (fb2-reader-toc-get-fb2-window t)
-      (goto-char target))))
+      (goto-char target)
+      (recenter 0))))
+
+(defun fb2-reader-toc-follow-link ()
+  "Follow link under point in toc buffer."
+  (interactive)
+  (fb2-reader-toc-display-link)
+  (select-window (fb2-reader-toc-get-fb2-window t)))
+
+(defun fb2-reader-toc-follow-link-quit ()
+  "Follow link under point in toc buffer and quit toc window."
+  (interactive)
+  (fb2-reader-toc-display-link)
+  (fb2-reader-toc-quit))
 
 (defun fb2-reader-toc-mouse-display-link (event)
   "Display link corresponding to the EVENT position."
