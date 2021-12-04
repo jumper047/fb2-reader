@@ -1022,19 +1022,23 @@ NUMBER's sign determines search direction."
 	(if found (setq number (- number step)
 			found nil))))))
 
+(defun fb2-reader--jump-chapter (n)
+  "Jump N chapters back or forth, and recenter screen."
+  (fb2-reader--jump-property n 'fb2-reader-title)
+  (recenter 0)
+  (if fb2-reader-header-line-mode
+      (scroll-up 1)))
 
 (defun fb2-reader-forward-chapter (&optional n)
   "Go N chapters forward."
   (interactive "p")
-  (fb2-reader--jump-property n 'fb2-reader-title)
-  (recenter 0))
+  (fb2-reader--jump-chapter n))
 
 (defun fb2-reader-backward-chapter (&optional n)
   "Go N chapters backward."
   (interactive "p")
   (setq n (* n -1))
-  (fb2-reader--jump-property n 'fb2-reader-title)
-  (recenter 0))
+  (fb2-reader--jump-chapter n))
 
 (defun fb2-reader--jump-link (n)
   "Go N links forward."
@@ -1500,7 +1504,9 @@ and switches to parse-html on failure."
       (user-error "There is no destination at point"))
     (with-selected-window (fb2-reader-toc-get-fb2-window t)
       (goto-char target)
-      (recenter 0))))
+      (recenter 0)
+      (if fb2-reader-header-line-mode
+	  (scroll-up 1)))))
 
 (defun fb2-reader-toc-follow-link ()
   "Follow link under point in toc buffer."
