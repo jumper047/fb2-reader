@@ -1427,7 +1427,7 @@ and switches to parse-html on failure."
   (interactive)
   (fb2-reader-assert-mode-p)
   (unless (equal (f-ext fb2-reader-file-name) "zip")
-    (user-errror "Document is not a zip archive"))
+    (user-error "Document is not a zip archive"))
   (with-current-buffer (find-file-literally fb2-reader-file-name)
     (archive-mode)))
 
