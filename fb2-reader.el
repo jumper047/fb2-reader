@@ -52,7 +52,6 @@
 ;; Add these strings to your config:
 ;;
 ;;    (use-package fb2-reader
-;;      :mode (("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
 ;;      :commands (fb2-reader-continue)
 ;;      :custom
 ;;      ;; This mode renders book with fixed width, adjust to your preferences.
