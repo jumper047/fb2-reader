@@ -1,5 +1,5 @@
 ;;; fb2-reader.el --- Read FB2 and FB2.ZIP documents -*- lexical-binding: t; -*-
-
+;; 184
 ;; Copyright (c) 2021 Dmitriy Pshonko <jumper047@gmail.com>
 
 ;; Author: Dmitriy Pshonko <jumper047@gmail.com>
@@ -145,14 +145,94 @@ will be used. Enter your variant if you need something special."
   :type 'string
   :group 'fb2-reader)
 
+(defcustom fb2-reader-default-indent 0
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-title-indent 2
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-poem-indent 0
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-cite-indent 4
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-default-alignment 'full
+  "Aligment for plain text in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-cite-alignment 'full
+  "Aligment for cites in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-text-author-alignment 'right
+  "Aligment for text author's name in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-poem-alignment 'full
+  "Aligment for poems in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
+(defcustom fb2-reader-title-alignment 'full
+  "Aligment for titles in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
 (defface fb2-reader-default
   '((t (:inherit default)))
   "Default face for fb2-reader buffer."
   :group 'fb2-reader)
 
 (defface fb2-reader-title
-  '((t (:height 1.4 :inherit default)))
+  '((t (:height 1.4 :inherit fb2-reader-default)))
   "Face for titles in fb2-reader buffer."
+  :group 'fb2-reader)
+
+(defface fb2-reader-poem
+  '((t (:inherit fb2-reader-default)))
+  "Face for poem tag in fb2-reader buffer."
+  :group 'fb2-reader)
+
+(defface fb2-reader-cite
+  '((t (:inherit fb2-reader-default)))
+  "Face for cite tag in fb2-reader buffer."
+  :group 'fb2-reader)
+
+(defface fb2-reader-text-author
+  '((t (:inherit fb2-reader-default)))
+  "Face for cite tag in fb2-reader buffer."
+  :group 'fb2-reader)
+
+(defface fb2-reader-link
+  '((t (:inherit link)))
+  "Face for links in fb2-reader buffer."
   :group 'fb2-reader)
 
 (defface fb2-reader-splash
@@ -174,6 +254,14 @@ will be used. Enter your variant if you need something special."
   '((t (:height 1.4 :inherit header-line)))
   "Face for header line with current title."
   :group 'fb2-reader)
+
+(defvar fb2-reader-face-names
+  '(fb2-reader-default
+    fb2-reader-title
+    fb2-reader-poem
+    fb2-reader-cite)
+  "List of names, which heights should be injected into
+async rendering process")
 
 (defvar fb2-reader-index-filename "index.el"
   "Filename for file containing meta information about cached books.")
@@ -212,6 +300,10 @@ will be used. Enter your variant if you need something special."
 (defvar-local fb2-reader--link-is-visible-p nil
   "Keeps result of previous execution of `fb2-reader-visible-link-p'")
 
+(defvar fb2-reader-face-heights nil
+  "Alist containing face names and their heights.
+Variable needed to send them to async process.")
+
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
 		(fb2-reader-header-line-text))))
@@ -238,15 +330,15 @@ BOOK is whole xml tree (it is needed in case)"
 	  (body (cddr item)))
 
       (cond ((equal current-tag 'text-author)
-	     (fb2-reader--format-string book body tags face current-tag 'right indent))
+	     (fb2-reader--format-string book body tags face current-tag fb2-reader-text-author-alignment indent))
 	    ((equal current-tag 'section)
 	     (fb2-reader--parse-section book attributes body tags face current-tag))
 	    ((equal current-tag 'poem)
-	     (fb2-reader--parse-poem book body tags face current-tag))
+	     (fb2-reader--parse-poem book body tags))
 	    ((equal current-tag 'title)
-	     (fb2-reader--parse-title book body tags face current-tag))
+	     (fb2-reader--parse-title book body tags))
 	    ((equal current-tag 'cite)
-	     (fb2-reader--parse-cite book body tags face current-tag))
+	     (fb2-reader--parse-cite book body tags))
 	    ((equal current-tag 'empty-line)
 	     (insert (propertize "\n" 'fb2-reader-tags (cons 'empty-line tags))))
 	    ((equal current-tag 'image)
@@ -261,7 +353,7 @@ BOOK is whole xml tree (it is needed in case)"
 					face current-tag alignment indent))
 	    ((equal current-tag 'v)
 	     (fb2-reader--format-string book body tags
-					face current-tag 'center indent))
+					face current-tag alignment indent))
 	    ((equal current-tag 'strong)
 	     (fb2-reader-parse book (cl-first body) tags (cons 'bold face)))
 	    ((equal current-tag 'emphasis)
@@ -270,10 +362,45 @@ BOOK is whole xml tree (it is needed in case)"
 	     (dolist (subitem body)
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
+(defun fb2-reader-calculate-heights ()
+  "Get heights for book faces and save them to global var."
+  (setq fb2-reader-face-heights nil)
+  (dolist (name fb2-reader-face-names)
+    (push (cons name (fb2-reader-get-face-height name))
+	  fb2-reader-face-heights)))
+
+(defun fb2-reader-get-face-height (face)
+  "Take font height from FACE. Face can be face or alist."
+  (let ((height 1)
+	height-curr)
+    (if (listp face) (setq face (car (alist-get :inherit face))))
+    (while face
+      (setq height-curr (face-attribute face :height))
+      (if (equal height-curr 'unspecified)
+	  (setq height-curr 1.0))
+      (setq height (* height(if (and (not (eq height-curr 1)) (integerp height-curr))
+				(/ height-curr (face-attribute 'default :height))
+			      height-curr))
+	    face (face-attribute face :inherit)))
+    height))
+
+(defun fb2-reader-fc-for-face (face)
+  "Calculate `fill-column' value for FACE.
+Needed in case face sets width != 1.
+FACE can be a face or list of face attributes.
+In second case height of the face in :inherit alist will be
+taken into account."
+  (if (listp face) (setq face (car (alist-get :inherit face))))
+  (let ((height (alist-get face fb2-reader-face-heights)))
+    ;; For some reason on width near 1.2 rendered page became little
+    ;; widthier than it should be. 0.96 coefficient should solve it.
+    ;; sorry for dirty hack:(
+    (round (* 0.96 (/ fb2-reader-page-width height)))))
+
 (defun fb2-reader--format-string (book body tags face curr-tag  alignment indent  &optional indent-first append-newline)
   "Format BODY according to FACE, ALIGNMENT and INDENT and insert it.
 BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
-  (or indent-first (setq indent-first 2))
+  (or indent-first (setq indent-first (if (eq alignment 'center) 0 2)))
   (or append-newline (setq append-newline 't))
   (let* ((point-start (point))
 	 (indent (+ indent 1))
@@ -283,7 +410,8 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
 	 ;; beginning of the string as fill-prefix. If fill
 	 ;; prefix is not empty it works as expected.
 	 (prefix (string-join (make-list indent " ")))
-	 (prefix-first (string-join (make-list (+ indent indent-first) " "))))
+	 (prefix-first (string-join (make-list (+ indent indent-first) " ")))
+	 (fill-column (- (fb2-reader-fc-for-face face) indent)))
 
     (insert (propertize prefix-first 'fb2-reader-tags tags))
     (dolist (subitem body)
@@ -291,58 +419,13 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
     (if append-newline
 	(insert (propertize "\n" 'fb2-reader-tags tags)))
     (setq fill-prefix prefix)
-    (fill-region point-start (point) alignment)))
-
-(defun fb2-reader--insert-newline-maybe ()
-  "Insert newline if there is no newline inserted before.
-Exception for \"empty-line\" tag."
-
-  (let (already-added)
-    (save-excursion
-      (backward-char)
-      (setq already-added
-	    (and (equal (char-before) 10)
-		 (equal (char-after) 10))))
-    (unless already-added
-      (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
-
-(defun fb2-reader--parse-section (book attributes body tags face curr-tag)
-  "Parse section, add fb2-reader-id text property if id found in ATTRIBUTES.
-BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
-  (let ((start (point))
-	(id (alist-get 'id attributes)))
-    (dolist (subitem body)
-      (fb2-reader-parse book subitem (cons curr-tag tags) face))
-    (when id
-      (add-text-properties start (point) (list 'fb2-reader-id (intern id))))))
-
-(defun fb2-reader--parse-title (book body tags face curr-tag)
-  "Parse and insert BODY (BOOK 's part) as title."
-
-  (let* ((height (face-attribute 'fb2-reader-title :height))
-	 (title-fill-column (round (/ fb2-reader-page-width height)))
-	 (title-face (cons '(:inherit fb2-reader-title)
-			   (assq-delete-all :inherit face)))
-	 (fill-column-backup fill-column)
-	 start
-	 end)
-
-    (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
-      (insert "\n\n"))
-    (setq start (point))
-    (setq-local fill-column title-fill-column)
-    (dolist (subitem body)
-      (fb2-reader-parse book subitem (cons curr-tag tags) title-face  'center 2))
-    (setq-local fill-column fill-column-backup)
-    ;; Because of strange fill-region behavior every line in region should be recenered
-    ;; (For some reason when fill-region invoked inside fb2r-format-string,
-    ;; every space or tab added to line not inherit :height property, and
-    ;; resulting line length became longer or shorter than planned)
-    (fb2-reader--recenter-region start (point) height)
-    (setq end (point))
-    (insert "\n")
-    (add-text-properties start end '(fb2-reader-title t))))
-
+    (fill-region point-start (point) alignment)
+    (if (and
+	 (eq alignment 'center)
+	 ;; Check below means face's height not equal 1
+	 (not (equal fill-column fb2-reader-page-width)))
+	(fb2-reader--recenter-region point-start (point)
+   				     (alist-get (car (alist-get :inherit face)) fb2-reader-face-heights)))))
 
 (defun fb2-reader--center-prefix (linelen strlen height)
   "Calculate number of spaces needed to center string.
@@ -378,28 +461,69 @@ than planned\)"
 	  (insert (s-repeat prefix " "))
 	  (insert linestr))))))
 
-(defun fb2-reader--parse-cite (book body tags face current-tag)
-  "Parse BODY as cite and insert it.
+(defun fb2-reader--insert-newline-maybe ()
+  "Insert newline if there is no newline inserted before.
+Exception for \"empty-line\" tag."
+
+  (let (already-added)
+    (save-excursion
+      (backward-char)
+      (setq already-added
+	    (and (equal (char-before) 10)
+		 (equal (char-after) 10))))
+    (unless already-added
+      (insert (propertize "\n" 'fb2-reader-tags '(empty-line-special))))))
+
+(defun fb2-reader--parse-section (book attributes body tags face curr-tag)
+  "Parse section, add fb2-reader-id text property if id found in ATTRIBUTES.
 BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
-  (let* ((indent 4)
-	 (fill-column-backup fill-column)
-	 (new-fill-column (- fill-column indent)))
-    (fb2-reader--insert-newline-maybe)
-    (setq-local fill-column new-fill-column)
+  (let ((start (point))
+	(id (alist-get 'id attributes)))
     (dolist (subitem body)
-      (fb2-reader-parse book subitem (cons current-tag tags) face 'full indent))
-    (setq-local fill-column fill-column-backup)
+      (fb2-reader-parse book subitem (cons curr-tag tags) face))
+    (when id
+      (add-text-properties start (point) (list 'fb2-reader-id (intern id))))))
+
+(defun fb2-reader--parse-title (book body tags)
+  "Parse and insert BODY (BOOK 's part) as title."
+
+  (let* ((face '((:inherit fb2-reader-title)))
+	 start
+	 end)
+    (when (> (line-number-at-pos) 1)	;don't insert separator if this is first title
+      (insert "\n\n"))
+    (setq start (point))
+    (dolist (subitem body)
+      (fb2-reader-parse book subitem (cons 'title tags) face
+			fb2-reader-title-alignment
+			fb2-reader-title-indent))
+    (setq end (point))
+    (insert "\n")
+    (add-text-properties start end '(fb2-reader-title t))))
+
+(defun fb2-reader--parse-cite (book body tags)
+  "Parse BODY as cite and insert it.
+BOOK is whole book xml tree, TAGS - fb2 tags."
+  (let* ((indent fb2-reader-cite-indent)
+	 (align fb2-reader-cite-alignment)
+	 (face '((:inherit fb2-reader-cite))))
+    (fb2-reader--insert-newline-maybe)
+    (dolist (subitem body)
+      (fb2-reader-parse book subitem (cons 'cite tags) face align indent))
     (fb2-reader--insert-newline-maybe)))
 
-(defun fb2-reader--parse-poem (book body tags face current-tag)
+(defun fb2-reader--parse-poem (book body tags)
   "Parse BODY as poem and insert it.
-BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
+BOOK is whole book xml tree, TAGS - fb2 tags."
   (dolist (subitem body)
-    (let ((subtags (cons current-tag tags))
-	  (subtag (cl-first subitem)))
+    (let ((subtags (cons 'poem tags))
+	  (subtag (cl-first subitem))
+	  (face '((:inherit fb2-reader-poem))))
       (if (equal subtag 'stanza)
 	  (fb2-reader--insert-newline-maybe))
-      (fb2-reader-parse book subitem (cons subtag subtags) face)))
+      (fb2-reader-parse book subitem (cons subtag subtags) face
+			fb2-reader-poem-alignment
+			fb2-reader-poem-indent)))
   (insert (propertize "\n" 'fb2-reader-tags '('empty-line-special))))
 
 (defun fb2-reader--pickle-image (book attributes tags)
@@ -856,6 +980,7 @@ if these parameters are set."
 
 (defun fb2-reader-render-async (book render-fn callback)
   "Render BOOK asynchronously using RENDER-FN, launch CALLBACK with result."
+  (fb2-reader-calculate-heights)
   (async-start
    `(lambda ()
       ,(async-inject-variables "\\`\\(fb2-reader\\)-")
