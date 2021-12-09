@@ -165,6 +165,11 @@ will be used. Enter your variant if you need something special."
   :type 'int
   :group 'fb2-reader)
 
+(defcustom fb2-reader-header-line-indent 2
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader)
+   
 (defcustom fb2-reader-default-alignment 'full
   "Aligment for plain text in document."
   :type '(choice (const :tag "Full" full)
@@ -204,6 +209,14 @@ will be used. Enter your variant if you need something special."
 		 (const :tag "Right" right)
 		 (const :tag "Center" center))
   :group 'fb2-reader)
+
+   (defcustom fb2-reader-header-line-alignment 'center
+  "Aligment for titles in document."
+  :type '(choice (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader)
+
 
 (defface fb2-reader-default
   '((t (:inherit default)))
@@ -1037,7 +1050,7 @@ header line and text for echo."
     (goto-char (point-min))
     (let ((max-length (round (/ fb2-reader-page-width
 				(face-attribute 'fb2-reader-header-line :height))))
-	  start next-change plist displayed echo index)
+	  start next-change plist displayed filler echo index)
       (while (not (eobp))
 	(setq start (point)
 	      next-change (or (next-single-property-change (point) 'fb2-reader-title)
@@ -1051,9 +1064,17 @@ header line and text for echo."
 	    (if (>= (length displayed) max-length)
 		(setq displayed (concat (s-left (- max-length 3) displayed) "...")
 		      echo (buffer-substring-no-properties start next-change)))
-	    (setq displayed (concat
-			     (s-repeat (round (/ (- max-length (length displayed)) 2)) " ")
-			     displayed))
+	    
+	    (setq filler (cond ((eq fb2-reader-header-line-alignment 'left)
+				(s-repeat (1+ fb2-reader-header-line-indent) " "))
+			       ((eq fb2-reader-header-line-alignment 'right)
+				(s-repeat (round(- max-length
+   						   (length displayed)) ) " "))
+			       ((eq fb2-reader-header-line-alignment 'center)
+				(s-repeat (round (/ (- max-length
+						    (length displayed)) 2)) " ")))
+		  displayed (concat filler
+				    displayed))
 	    (push (list (point)
 			(propertize displayed
 				    'face 'fb2-reader-header-line
