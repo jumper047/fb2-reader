@@ -167,6 +167,10 @@ will be used. Enter your variant if you need something special."
     (define-key map "\r" 'fb2-reader-follow-link)
     (define-key map [mouse-2] 'fb2-reader-follow-link)
     map))
+ 
+(defvar fb2-reader-face-heights nil
+  "Variable to put face heights on async rendering.
+Variable should be setted only in async process.")
 
 (defvar-local fb2-reader-file-name nil
   "Book's filename (replaces buffer-file-name).")
@@ -191,10 +195,6 @@ will be used. Enter your variant if you need something special."
 
 (defvar-local fb2-reader--link-is-visible-p nil
   "Keeps result of previous execution of `fb2-reader-visible-link-p'")
-
-(defvar fb2-reader-face-heights nil
-  "Alist containing face names and their heights.
-Variable needed to send them to async process.")
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
@@ -374,12 +374,19 @@ BOOK is whole xml tree (it is needed in case)"
 	     (dolist (subitem body)
 	       (fb2-reader-parse book subitem (cons current-tag tags) face)))))))
 
-(defun fb2-reader-calculate-heights ()
-  "Get heights for book faces and save them to global var."
-  (setq fb2-reader-face-heights nil)
-  (dolist (name fb2-reader-face-names)
-    (push (cons name (fb2-reader-get-face-height name))
-	  fb2-reader-face-heights)))
+(defun fb2-reader-face-heights ()
+  "Get alist with pairs of face names and their heights.
+Order of elements should be persistent: it should be as in
+`fb2-reader-face-names'. If variable with same name is not nil
+it should happen only when function executed inside async process
+return that variable, otherwise calculate heights."
+  (if (null fb2-reader-face-heights)
+      (let (face-heights)
+	(dolist (name fb2-reader-face-names)
+	  (push (cons name (fb2-reader-get-face-height name))
+		face-heights))
+	face-heights)
+    fb2-reader-face-heights))
 
 (defun fb2-reader-get-face-height (face)
   "Take font height from FACE. Face can be face or alist."
@@ -403,7 +410,7 @@ FACE can be a face or list of face attributes.
 In second case height of the face in :inherit alist will be
 taken into account."
   (if (listp face) (setq face (car (alist-get :inherit face))))
-  (let ((height (alist-get face fb2-reader-face-heights)))
+  (let ((height (alist-get face (fb2-reader-face-heights))))
     ;; For some reason on width near 1.2 rendered page became little
     ;; widthier than it should be. 0.96 coefficient should solve it.
     ;; sorry for dirty hack:(
@@ -437,7 +444,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
 	 ;; Check below means face's height not equal 1
 	 (not (equal fill-column fb2-reader-page-width)))
 	(fb2-reader--recenter-region point-start (point)
-   				     (alist-get (car (alist-get :inherit face)) fb2-reader-face-heights)))))
+   				     (alist-get (car (alist-get :inherit face)) (fb2-reader-face-heights))))))
 
 (defun fb2-reader--center-prefix (linelen strlen height)
   "Calculate number of spaces needed to center string.
@@ -992,12 +999,12 @@ if these parameters are set."
 
 (defun fb2-reader-render-async (book render-fn callback)
   "Render BOOK asynchronously using RENDER-FN, launch CALLBACK with result."
-  (fb2-reader-calculate-heights)
   (async-start
    `(lambda ()
       ,(async-inject-variables "\\`\\(fb2-reader\\)-")
       ,(async-inject-variables "book")
       ,(async-inject-variables "render-fn")
+      (setq fb2-reader-face-heights (quote ,(fb2-reader-face-heights)))
       (setq load-path (quote ,load-path))
       (require 'fb2-reader)
       (with-temp-buffer
