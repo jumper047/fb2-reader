@@ -123,11 +123,6 @@
   :type 'integer
   :group 'fb2-reader)
 
-(defcustom fb2-reader-title-height 1.4
-  "Height of the title's font."
-  :type 'float
-  :group 'fb2-reader)
-
 (defcustom fb2-reader-max-in-cache 20
   "Maximum number of files stored in cache."
   :type 'integer
@@ -145,109 +140,6 @@ will be used. Enter your variant if you need something special."
   :type 'string
   :group 'fb2-reader)
 
-(defcustom fb2-reader-default-indent 0
-  "Indent for plain text in document."
-  :type 'int
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-title-indent 2
-  "Indent for plain text in document."
-  :type 'int
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-poem-indent 0
-  "Indent for plain text in document."
-  :type 'int
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-cite-indent 4
-  "Indent for plain text in document."
-  :type 'int
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-header-line-indent 2
-  "Indent for plain text in document."
-  :type 'int
-  :group 'fb2-reader)
-   
-(defcustom fb2-reader-default-alignment 'full
-  "Aligment for plain text in document."
-  :type '(choice (const :tag "Full" full)
-		 (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-cite-alignment 'full
-  "Aligment for cites in document."
-  :type '(choice (const :tag "Full" full)
-		 (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-text-author-alignment 'right
-  "Aligment for text author's name in document."
-  :type '(choice (const :tag "Full" full)
-		 (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-poem-alignment 'full
-  "Aligment for poems in document."
-  :type '(choice (const :tag "Full" full)
-		 (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-(defcustom fb2-reader-title-alignment 'full
-  "Aligment for titles in document."
-  :type '(choice (const :tag "Full" full)
-		 (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-   (defcustom fb2-reader-header-line-alignment 'center
-  "Aligment for titles in document."
-  :type '(choice (const :tag "Left" left)
-		 (const :tag "Right" right)
-		 (const :tag "Center" center))
-  :group 'fb2-reader)
-
-
-(defface fb2-reader-default
-  '((t (:inherit default)))
-  "Default face for fb2-reader buffer."
-  :group 'fb2-reader)
-
-(defface fb2-reader-title
-  '((t (:height 1.4 :inherit fb2-reader-default)))
-  "Face for titles in fb2-reader buffer."
-  :group 'fb2-reader)
-
-(defface fb2-reader-poem
-  '((t (:inherit fb2-reader-default)))
-  "Face for poem tag in fb2-reader buffer."
-  :group 'fb2-reader)
-
-(defface fb2-reader-cite
-  '((t (:inherit fb2-reader-default)))
-  "Face for cite tag in fb2-reader buffer."
-  :group 'fb2-reader)
-
-(defface fb2-reader-text-author
-  '((t (:inherit fb2-reader-default)))
-  "Face for cite tag in fb2-reader buffer."
-  :group 'fb2-reader)
-
-(defface fb2-reader-link
-  '((t (:inherit link)))
-  "Face for links in fb2-reader buffer."
-  :group 'fb2-reader)
-
 (defface fb2-reader-splash
   '((t (:height 1.5 :inherit default)))
   "Face for splash screen text about book rendering"
@@ -262,19 +154,6 @@ will be used. Enter your variant if you need something special."
   '((t (:weight bold :underline 't)))
   "Face for category name in book info buffer."
   :group 'fb2-reader)
-
-(defface fb2-reader-header-line
-  '((t (:height 1.4 :inherit header-line)))
-  "Face for header line with current title."
-  :group 'fb2-reader)
-
-(defvar fb2-reader-face-names
-  '(fb2-reader-default
-    fb2-reader-title
-    fb2-reader-poem
-    fb2-reader-cite)
-  "List of names, which heights should be injected into
-async rendering process")
 
 (defvar fb2-reader-index-filename "index.el"
   "Filename for file containing meta information about cached books.")
@@ -323,6 +202,125 @@ Variable needed to send them to async process.")
 
 (defvar display-line-numbers-mode)
 
+;; Appearance settings
+(defgroup fb2-reader-appearance nil
+  "Variables controlling book's appearance.
+Faces, indents, etc."
+  :group 'fb2-reader)
+
+(defvar fb2-reader-face-names
+  '(fb2-reader-default
+    fb2-reader-title
+    fb2-reader-poem
+    fb2-reader-cite)
+  "List of names, should be injected into async processes.")
+
+(defcustom fb2-reader-default-indent 0
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-default-alignment 'full
+  "Aligment for plain text in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-default
+  '((t (:inherit default)))
+  "Default face for fb2-reader buffer."
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-title-indent 2
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-title-alignment 'full
+  "Aligment for titles in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-title
+  '((t (:height 1.4 :inherit fb2-reader-default)))
+  "Face for titles in fb2-reader buffer."
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-poem-indent 0
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-poem-alignment 'full
+  "Aligment for poems in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-poem
+  '((t (:inherit fb2-reader-default)))
+  "Face for poem tag in fb2-reader buffer."
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-cite-indent 4
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-cite-alignment 'full
+  "Aligment for cites in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-cite
+  '((t (:inherit fb2-reader-default)))
+  "Face for cite tag in fb2-reader buffer."
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-header-line-indent 2
+  "Indent for plain text in document."
+  :type 'int
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-header-line-alignment 'center
+  "Aligment for titles in document."
+  :type '(choice (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-header-line
+  '((t (:height 1.4 :inherit header-line)))
+  "Face for header line with current title."
+  :group 'fb2-reader-appearance)
+
+(defcustom fb2-reader-text-author-alignment 'right
+  "Aligment for text author's name in document."
+  :type '(choice (const :tag "Full" full)
+		 (const :tag "Left" left)
+		 (const :tag "Right" right)
+		 (const :tag "Center" center))
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-text-author
+  '((t (:inherit fb2-reader-default)))
+  "Face for cite tag in fb2-reader buffer."
+  :group 'fb2-reader-appearance)
+
+(defface fb2-reader-link
+  '((t (:inherit link)))
+  "Face for links in fb2-reader buffer."
+  :group 'fb2-reader-appearance)
 ;; Fb2 parsing
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
