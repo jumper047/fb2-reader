@@ -1208,8 +1208,6 @@ NUMBER's sign determines search direction."
   (setq n (* n -1))
   (fb2-reader--jump-link n))
 
-
-
 (defun fb2-reader-visible-link-p ()
   "Check if current window contain fb2 links."
   (let ((first-link (next-single-property-change (window-start)
@@ -1288,33 +1286,38 @@ assuming this was checked before."
     (insert (prin1-to-string index))
     (insert "\n")))
 
-(defun fb2-reader-cache-avail-p (file &optional actual-only)
+(defun fb2-reader-cache-avail-p (file &optional actual-only verbose)
   "Check if cache for FILE available.
 
 If ACTUAL-ONLY return 't if cache is existed and actual and
 current page width is the same as rendered one.
 
+If VERBOSE display message explaining why result is negative.
+
 Because of changed cache index entry format cache will be
 treated as invalid if third element, page-width, is not
 presented."
   
-  (when-let* ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal))
-	      (modified-time (cl-first idx-entry))
-	      (page-width (cl-third idx-entry))
-	      (title-height (cl-fourth idx-entry)))
-    (if actual-only
-	(and (equal modified-time
-		    (file-attribute-modification-time
-		     (file-attributes file)))
-	     (equal page-width fb2-reader-page-width)
-	     (equal title-height (face-attribute 'fb2-reader-title :height)))
-      't)))
+  (let ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal))
+	mess)
+    (if idx-entry
+	(let-alist idx-entry
+	  (if actual-only
+   	      (progn (setq mess (cond ((not (equal .mtime (file-attribute-modification-time
+   						    (file-attributes file))))
+   				"File was changed since it was cached.")
+   			       ((not (equal .pagewidth fb2-reader-page-width))
+   				"Page width changed since file was cached.")
+   			       ((not (equal .faceheights (fb2-reader-face-heights)))
+   		 		"Face heights changed since file was cached.")))
+		     (if (null mess) 't (if verbose (message mess)) nil))
+   	    't)))))
 
 
 (defun fb2-reader-get-cache (file)
   "Load cache for FILE if it exists."
 
-  (when-let ((cache-file (cl-second (alist-get file (fb2-reader-cache-index) nil nil 'equal))))
+  (when-let ((cache-file (alist-get 'cachename (alist-get file (fb2-reader-cache-index) nil nil 'equal))))
     (fb2-reader-load-file cache-file)))
 
 (defun fb2-reader-add-to-cache (filename data)
@@ -1327,13 +1330,15 @@ Replace already added data if presented."
 	 (cache-filename (f-join fb2-reader-cache-dir
 				 (fb2-reader-gen-cache-file-name filename)))
 	 (index (fb2-reader-cache-index))
+	 ;; cache entry is a list whose first element is
+	 ;; filename and others are cons of key-value pairs
 	 (index-entry (list
 		       fb2-reader-file-name
-		       (file-attribute-modification-time
-			(file-attributes fb2-reader-file-name))
- 		       cache-filename
-		       fb2-reader-page-width
-		       (face-attribute 'fb2-reader-title :height))))
+		       (cons 'mtime (file-attribute-modification-time
+				     (file-attributes fb2-reader-file-name)))
+ 		       (cons 'cachename cache-filename)
+		       (cons 'pagewidth fb2-reader-page-width)
+		       (cons 'faceheights (fb2-reader-face-heights)))))
     (with-temp-file cache-filename
       (set-buffer-file-coding-system 'utf-8)
       (insert ";; fb2-reader.el -- read fb2 books  ")
@@ -1347,7 +1352,7 @@ Replace already added data if presented."
 (defun fb2-reader-remove-from-cache (filename)
   "Remove FILENAME from cache."
 
-  (when-let ((cache-file (cl-second
+  (when-let ((cache-file (alist-get 'cachename
 			  (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
 	     (index (fb2-reader-cache-index)))
     (f-delete cache-file)
