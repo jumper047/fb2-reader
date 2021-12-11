@@ -212,7 +212,8 @@ Faces, indents, etc."
   '(fb2-reader-default
     fb2-reader-title
     fb2-reader-poem
-    fb2-reader-cite)
+    fb2-reader-cite
+    fb2-reader-text-author)
   "List of names, should be injected into async processes.")
 
 (defcustom fb2-reader-default-indent 0
