@@ -736,7 +736,7 @@ If no custom text, take text's language from ITEM."
    ((equal lang "hy")
     "Բեռնվում է, խնդրում ենք սպասել.")
    ((equal lang "be")
-    "Ідзе загрузка, пачакайце.")
+    "Ідзе загрузка, калі ласка, пачакайце.")
    ((equal lang "bg")
     "Зареждане, моля, изчакайте.")
    ((equal lang "hu")
