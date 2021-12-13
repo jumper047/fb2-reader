@@ -1080,7 +1080,7 @@ header line and text for echo."
    						   (length displayed)) ) " "))
 			       ((eq fb2-reader-header-line-alignment 'center)
 				(s-repeat (round (/ (- max-length
-						    (length displayed)) 2)) " ")))
+						       (length displayed)) 2)) " ")))
 		  displayed (concat filler
 				    displayed))
 	    (push (list (point)
@@ -1306,12 +1306,12 @@ presented."
 	(let-alist idx-entry
 	  (if actual-only
    	      (progn (setq mess (cond ((not (equal .mtime (file-attribute-modification-time
-   						    (file-attributes file))))
-   				"File was changed since it was cached.")
-   			       ((not (equal .pagewidth fb2-reader-page-width))
-   				"Page width changed since file was cached.")
-   			       ((not (equal .faceheights (fb2-reader-face-heights)))
-   		 		"Face heights changed since file was cached.")))
+   							   (file-attributes file))))
+   				       "File was changed since it was cached.")
+   				      ((not (equal .pagewidth fb2-reader-page-width))
+   				       "Page width changed since file was cached.")
+   				      ((not (equal .faceheights (fb2-reader-face-heights)))
+   		 		       "Face heights changed since file was cached.")))
 		     (if (null mess) 't (if verbose (message mess)) nil))
    	    't)))))
 
@@ -1355,7 +1355,7 @@ Replace already added data if presented."
   "Remove FILENAME from cache."
 
   (when-let ((cache-file (alist-get 'cachename
-			  (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
+				    (alist-get filename (fb2-reader-cache-index) nil nil 'equal)))
 	     (index (fb2-reader-cache-index)))
     (f-delete cache-file)
     (setq index (remove filename index))
