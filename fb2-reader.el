@@ -103,6 +103,11 @@
   :type 'boolean
   :group 'fb2-reader)
 
+(defcustom fb2-reader-hide-nobreak t
+  "Hide nobreak character in fb2-reader buffer."
+  :type 'boolean
+  :group 'fb2-reader)
+
 (defcustom fb2-reader-page-width 120
   "Width of the rendered text."
   :type 'integer
@@ -1966,6 +1971,8 @@ and overall width of the page exceeds defined width."
 		 (setq fb2-reader-rendering-future nil))))))
 
     (fb2-reader-imenu-setup)
+    (if fb2-reader-hide-nobreak
+	(setq-local nobreak-char-display nil))
     (if fb2-reader-title-in-headerline
 	(fb2-reader-header-line-mode))
     (if fb2-reader-hide-cursor
