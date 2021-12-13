@@ -1978,7 +1978,7 @@ and overall width of the page exceeds defined width."
       (fb2-reader-splash-screen book))))
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.fb2\\(.zip\\|\\)$" . fb2-reader-mode))
+(add-to-list 'auto-mode-alist '("\\.fb2\\(\\.zip\\)?\\'" . fb2-reader-mode))
 
 (provide 'fb2-reader)
 
