@@ -395,7 +395,7 @@ return that variable, otherwise calculate heights."
   (let ((height 1)
 	height-curr)
     (if (listp face) (setq face (car (alist-get :inherit face))))
-    (while face
+    (while (and face (not (equal face 'unspecified)))
       (setq height-curr (face-attribute face :height))
       (if (equal height-curr 'unspecified)
 	  (setq height-curr 1.0))
