@@ -828,10 +828,12 @@ If no custom text, take text's language from ITEM."
 (defun fb2-reader-splash-cover (book item)
   "Insert cover for splash screen.
 Take cover from BOOK according to data in ITEM."
-  (let* ((attrs (cl-second (cl-third item)))
-	 (imgdata (fb2-reader--extract-image-data book attrs))
-	 (type-str (cl-first imgdata))
-	 (data-str (cl-second imgdata)))
+  ;; when-let used in case we have empty coverpage tag, then function
+  ;; just skipped image processing
+  (when-let* ((attrs (cl-second (cl-third item)))
+	      (imgdata (fb2-reader--extract-image-data book attrs))
+	      (type-str (cl-first imgdata))
+	      (data-str (cl-second imgdata)))
     (fb2-reader--insert-image data-str type-str nil t)
     (newline)))
 
