@@ -506,7 +506,7 @@ BOOK is whole book xml tree, TAGS - fb2 tags, CURR-TAG - current fb2 tag."
       (add-text-properties start (point) (list 'fb2-reader-id (intern id))))))
 
 (defun fb2-reader--parse-title (book body tags)
-  "Parse and insert BODY (BOOK 's part) as title."
+  "Parse and insert BODY (BOOK\'s part) as title."
 
   (let* ((face '((:inherit fb2-reader-title)))
 	 start
@@ -926,7 +926,7 @@ Take cover from BOOK according to data in ITEM."
     (user-error "This is last element in history")))
 
 (defun fb2-reader--find-subitem (item tag &optional property value)
-  "Find first ITEM 's child with TAG.
+  "Find first ITEM\'s child with TAG.
 
 Founded item should have PROPERTY with certain VALUE,
 if these parameters are set."
@@ -942,7 +942,10 @@ if these parameters are set."
 			     nil))))
 
 (defun fb2-reader--find-subitem-recursively (item &rest tags)
-  "Find ITEM 's subitem with first tag from TAGS, then subitem's subitem with second tag and so on."
+  "Trawerse by the chain of the tags in ITEM.
+
+TAGS are list of the tags. First function founds first tag from the list,
+then found second tag in subitem and so on."
 
   (let (curr-item)
     (setq curr-item item)
@@ -1293,7 +1296,7 @@ assuming this was checked before."
 (defun fb2-reader-cache-avail-p (file &optional actual-only verbose)
   "Check if cache for FILE available.
 
-If ACTUAL-ONLY return 't if cache is existed and actual and
+If ACTUAL-ONLY return t if cache is existed and actual and
 current page width is the same as rendered one.
 
 If VERBOSE display message explaining why result is negative.
@@ -1775,7 +1778,7 @@ If FORCE display it if it is hidden."
 
 (defun fb2-reader-toc-select-fb2-window (&optional force-display)
   "Select fb2 buffer corresponding to current toc.
-Display window if it is hidden and FORCE-DISPLAY is 't"
+Display window if it is hidden and FORCE-DISPLAY is t"
   (interactive)
   (fb2-reader-toc-assert-mode-p)
   (let ((win (fb2-reader-toc-get-fb2-window force-display)))
