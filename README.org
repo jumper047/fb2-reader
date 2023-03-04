@@ -145,5 +145,5 @@ Plugin for Emacs to read FictionBook2 ebooks.
   |----------------+-------------------------------------------------|
 
 * Aknowledgements
-Heavily inspired by @spline1986's [[https://github.com/spline1986/fb2-mode][fb2-mode]].
-Also kudos for @vlichevsky - his testing is extremely helpful!
+Heavily inspired by [[https://github.com/spline1986][@spline1986's]] [[https://github.com/spline1986/fb2-mode][fb2-mode]].
+Also kudos for [[https://github.com/vlichevsky][@vlichevsky]] - his testing is extremely helpful!
