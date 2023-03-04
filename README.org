@@ -112,7 +112,7 @@ Plugin for Emacs to read FictionBook2 ebooks.
   | =o=, =t= | Show TOC outline                        |
   |----------+-----------------------------------------|
   | =c=      | Toggle no-cursor mode                   |
-
+  |----------+-----------------------------------------|
   *Metadata:*
   |----------+------------------------------------|
   | Key      | Action                             |
@@ -124,7 +124,7 @@ Plugin for Emacs to read FictionBook2 ebooks.
   | =c=      | Toggle no-cursor mode              |
   |----------+------------------------------------|
   | =q=      | Quit window                        |
-
+  |----------+------------------------------------|
   *Outline:*
   |----------------+-------------------------------------------------|
   | Key            | Action                                          |
