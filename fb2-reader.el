@@ -1384,7 +1384,7 @@ Replace already added data if presented."
 	(if fb2-reader-restore-position
 	    (fb2-reader-restore-pos)
 	  (goto-char (point-min)))
-	(setq buffer-read-only nil)
+	(setq buffer-read-only 't)
 	(set-buffer-modified-p nil)))))
 
 (defun fb2-reader--refresh-buffer ()
