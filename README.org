@@ -52,6 +52,7 @@ Plugin for Emacs to read FictionBook2 ebooks.
   Add to your config and open any .fb2 or .fb2.zip document.
   #+begin_src emacs-lisp
     (use-package fb2-reader
+      :mode ("\\.fb2\\(\\.zip\\)?\\'" . fb2-reader-mode)
       :commands (fb2-reader-continue)
       :custom
       ;; This mode renders book with fixed width, adjust to your preferences.
