@@ -5,7 +5,7 @@
 ;; Author: Dmitriy Pshonko <jumper047@gmail.com>
 ;; URL: https://github.com/jumper047/fb2-reader
 ;; Keywords: multimedia, ebook, fb2
-;; Version: 0.1.0
+;; Version: 0.1.1
 
 ;; Package-Requires: ((emacs "26.2") (f "0.17") (s "1.11.0") (dash "2.12.0") (visual-fill-column "2.2") (async "1.9.4"))
 
