@@ -1320,6 +1320,11 @@ presented."
 		     (if (null mess) 't (if verbose (message mess)) nil))
    	    't)))))
 
+(defun fb2-reader-cache-creation-time (file)
+  "Return time when cache for FILE was created."
+
+  (let ((idx-entry (alist-get file (fb2-reader-cache-index) nil nil 'equal)))
+    (alist-get 'mtime idx-entry)))
 
 (defun fb2-reader-get-cache (file)
   "Load cache for FILE if it exists."
