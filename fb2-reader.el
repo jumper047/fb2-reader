@@ -1970,7 +1970,7 @@ and overall width of the page exceeds defined width."
 		 ;; For some reason propertized string returned from async process
 		 ;; loses hash at it's beginning.
 		 (fb2-reader-add-to-cache fb2-reader-file-name
-					  (read (concat "#" result)))
+					  (read (concat "#" (s-replace "" "" result))))
 		 (fb2-reader-restore-buffer)
 		 (kill-local-variable 'cursor-type) ; can't remember why this string is here..
 		 (if fb2-reader-title-in-headerline
