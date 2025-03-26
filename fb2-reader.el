@@ -1,5 +1,4 @@
 ;;; fb2-reader.el --- Read FB2 and FB2.ZIP documents -*- lexical-binding: t; -*-
-;; 184
 ;; Copyright (c) 2021 Dmitriy Pshonko <jumper047@gmail.com>
 
 ;; Author: Dmitriy Pshonko <jumper047@gmail.com>
@@ -36,7 +35,7 @@
 ;; - read .fb2 and .fb2.zip files
 ;; - rich book formatting
 ;; - showing current title in header line
-;; - internal links (select from keyboard, jumb back and forth)
+;; - internal links (select from keyboard, jump back and forth)
 ;; - navigation (next/previous chapters, imenu support)
 ;; - restoring last read position
 ;; - displaying raw xml
@@ -144,7 +143,7 @@ will be used. Enter your variant if you need something special."
 
 (defface fb2-reader-splash
   '((t (:height 1.5 :inherit default)))
-  "Face for splash screen text about book rendering"
+  "Face for splash screen text about book rendering."
   :group 'fb2-reader)
 
 (defface fb2-reader-info-field
@@ -175,7 +174,7 @@ will be used. Enter your variant if you need something special."
 Variable should be setted only in async process.")
 
 (defvar-local fb2-reader-file-name nil
-  "Book's filename (replaces buffer-file-name).")
+  "Book's filename (replaces variable `buffer-file-name').")
 
 (defvar-local fb2-reader-link-pos nil
   "Last used link's position.")
@@ -193,10 +192,12 @@ Variable should be setted only in async process.")
   "In outline this var holds name of the fb2-reader window.")
 
 (defvar-local fb2-reader-rendering-future nil
-  "Rendering future for current buffer")
+  "Rendering future for current buffer.")
 
 (defvar-local fb2-reader--link-is-visible-p nil
-  "Keeps result of previous execution of `fb2-reader-visible-link-p'")
+  "Keeps result of previous execution of `fb2-reader-visible-link-p'.")
+
+(defconst fb2-reader-cache-version 1)
 
 (defconst fb2-reader-header-line-format
   '(:eval (list (propertize " " 'display '((space :align-to 0)))
@@ -324,6 +325,8 @@ Faces, indents, etc."
   '((t (:inherit link)))
   "Face for links in fb2-reader buffer."
   :group 'fb2-reader-appearance)
+
+
 ;; Fb2 parsing
 
 (defun fb2-reader-parse (book item &optional tags face alignment indent)
@@ -633,7 +636,7 @@ to placeholder.
 
   (apply #'create-image data type 't props))
 
-
+
 ;; Parse metadata (everything inside description tag)
 
 (defun fb2-reader-parse-metadata (book item)
@@ -867,6 +870,7 @@ Take cover from BOOK according to data in ITEM."
 			'face 'fb2-reader-splash))
     (fb2-reader--recenter-region start (point-max) splash-height)))
 
+
 ;; Links
 
 (defun fb2-reader--parse-a-link (book attributes body tags face curr-tag)
@@ -1134,6 +1138,7 @@ header line and text for echo."
 
   (setf header-line-format 'fb2-reader-header-line-format))
 
+
 ;; Reading from settings
 
 (defun fb2-reader-ensure-dir (dir)
@@ -1150,6 +1155,7 @@ header line and text for echo."
 	(goto-char (point-min))
 	(read (current-buffer)))))
 
+
 ;; Navigation
 
 (defun fb2-reader--jump-property (number propname)
@@ -1276,6 +1282,7 @@ assuming this was checked before."
     (setq cursor-type t)
     (remove-hook 'pre-command-hook 'fb2-reader-check-links 't))))
 
+
 ;; Caching
 
 (defun fb2-reader-cache-index ()
@@ -1310,8 +1317,10 @@ presented."
     (if idx-entry
 	(let-alist idx-entry
 	  (if actual-only
-   	      (progn (setq mess (cond ((not (equal .mtime (file-attribute-modification-time
-   							   (file-attributes file))))
+   	      (progn (setq mess (cond ((not (equal .version fb2-reader-cache-version))
+                                       "Cache version is outdated.")
+                                      ((not (equal .mtime (file-attribute-modification-time
+   						           (file-attributes file))))
    				       "File was changed since it was cached.")
    				      ((not (equal .pagewidth fb2-reader-page-width))
    				       "Page width changed since file was cached.")
@@ -1346,6 +1355,7 @@ Replace already added data if presented."
 	 ;; filename and others are cons of key-value pairs
 	 (index-entry (list
 		       fb2-reader-file-name
+                       (cons 'version fb2-reader-cache-version)
 		       (cons 'mtime (file-attribute-modification-time
 				     (file-attributes fb2-reader-file-name)))
  		       (cons 'cachename cache-filename)
@@ -1602,6 +1612,7 @@ and switches to parse-html on failure."
   (with-current-buffer (find-file-literally fb2-reader-file-name)
     (archive-mode)))
 
+
 ;; TOC outline
 
 (defun fb2-reader-create-toc-data (&optional fb2-buffer)
@@ -1812,6 +1823,7 @@ Display window if it is hidden and FORCE-DISPLAY is t"
     (select-window (display-buffer toc-buffer))
     (fb2-reader-toc-goto-corresponding-line fb2-pos)))
 
+
 ;; Metadata buffer
 
 (defun fb2-reader-show-info ()
