@@ -1012,9 +1012,7 @@ then found second tag in subitem and so on."
   "Render BOOK asynchronously using RENDER-FN, launch CALLBACK with result."
   (async-start
    `(lambda ()
-      ,(async-inject-variables "\\`\\(fb2-reader\\)-")
-      ,(async-inject-variables "book")
-      ,(async-inject-variables "render-fn")
+      ,(async-inject-variables "\\`\\(fb2-reader\\)-" nil "abbrev-table")
       (setq fb2-reader-face-heights (quote ,(fb2-reader-face-heights)))
       (setq load-path (quote ,load-path))
       (require 'fb2-reader)
